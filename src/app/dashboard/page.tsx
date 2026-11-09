@@ -5,7 +5,7 @@ import { Loading, Stat, StatusBadge, WeatherNote } from "@/components/ui";
 import { useRegistry, View } from "@/lib/useModel";
 import { EMDS, ELDERLY_SHARE_NOTE } from "@/data/ulju";
 import { addDays, daysBetween, fmtDate, fmtL, fmtWon, isColdWave } from "@/lib/model";
-import { STATIONS_AS_OF, ULJU_STATION_TOTAL, STATIONS, byEmd } from "@/lib/stations";
+import { ULJU_STATION_TOTAL, byEmd, cheapestIn, useStations } from "@/lib/stations";
 import { update } from "@/lib/store";
 
 type Tab = "welfare" | "energy";
@@ -13,6 +13,7 @@ type Tab = "welfare" | "energy";
 export default function Dashboard() {
   const { weather, error, views, synth, store } = useRegistry();
   const [tab, setTab] = useState<Tab>("welfare");
+  const st = useStations();
 
   const all = useMemo(() => (views && synth ? [...views, ...synth] : []), [views, synth]);
 
@@ -28,15 +29,16 @@ export default function Dashboard() {
     }
     const perEmd = EMDS.map((e) => {
       const list = all.filter((v) => v.h.emd === e.name);
-      const st = byEmd(e.name);
+      const here = byEmd(st.stations, e.name);
+      const low = cheapestIn(st.stations, e.name);
       return {
         e,
         list,
         callWeek: list.filter((v) => v.status === "call" || (v.status === "ok" && v.proj.alertDate && v.proj.alertDate <= week)).length,
         empty: list.filter((v) => v.status === "empty").length,
         check: list.filter((v) => v.status === "check" || store.checks[v.h.id]).length,
-        stations: st.length,
-        minPrice: st.length ? Math.min(...st.map((x) => x.kerosene)) : null,
+        stations: here.length,
+        minPrice: low ? low.kerosene : null,
         winterL: list.reduce((a, v) => a + (v.shortfall?.liters ?? 0), 0),
         winterCost: list.reduce((a, v) => a + (v.shortfall?.cost ?? 0), 0),
         cold: coldDays[e.name],
@@ -48,7 +50,7 @@ export default function Dashboard() {
       return v.proj.levelToday < need && v.status !== "ordered";
     });
     return { today, perEmd, coldRisk, coldDays };
-  }, [weather, all, store.checks]);
+  }, [weather, all, store.checks, st]);
 
   if (!weather || !data) return <Loading error={error} />;
 
@@ -173,7 +175,7 @@ export default function Dashboard() {
               </tbody>
             </table>
             <p className="mt-2 text-xs text-muted">
-              노인 인구: 공공데이터포털 2025-08-20 · 주유소: 오피넷 {STATIONS_AS_OF}, 울주 {ULJU_STATION_TOTAL}곳 중 등유 가격이 있는 {STATIONS.length}곳 ·
+              노인 인구: 공공데이터포털 2025-08-20 · 주유소: {st.live ? `오피넷 실시간 ${st.asOf} (최저가 ${st.liveCount}곳${st.average ? `, 울주 평균 ${Math.round(st.average.price).toLocaleString()}원` : ""}) + 저장 자료 2026-09-19` : "오피넷 2026-09-19 저장 자료"}, 울주 {ULJU_STATION_TOTAL}곳 중 등유 가격이 있는 {st.stations.length}곳 ·
               한파 신호는 최저 -12℃ 이하 또는 하루 10℃ 넘는 급강하(단순화)
             </p>
           </section>

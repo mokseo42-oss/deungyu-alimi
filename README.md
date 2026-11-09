@@ -28,12 +28,20 @@
 - 학습: 눈금 답변(30%), 배달량(50%)으로 집 계수 보정
 - 숫자는 `src/lib/model.ts`가 계산하고, 대화(`src/lib/dialog.ts`)는 그 값을 문장에 넣기만 합니다
 
+## 생성형 AI (Gemini)
+
+- `/api/chat`: 어르신 대답을 Gemini(`gemini-3.5-flash-lite`)가 이해해 의도(눈금, 승낙, 거절, 양 변경, 돈 부담, 질문 등)를 JSON으로 돌려줍니다. 공감 한마디와 질문 답변도 만듭니다.
+- 주문·연결 같은 행동은 화면의 단계 규칙이 정합니다. 주문은 항상 "다시 확인 → 네" 두 단계를 거칩니다.
+- LLM 문장에 사실 목록(모델 계산값)에 없는 숫자가 있으면 버립니다. 공감 한마디에는 숫자를 허용하지 않습니다.
+- 키가 없거나 호출이 실패하면 규칙 분류로 자동 대체합니다(화면 상단 배지에 표시).
+
 ## 자료
 
 | 자료 | 출처 | 비고 |
 |---|---|---|
 | 12개 읍면 기온·16일 예보 | Open-Meteo 예보 API (키 없음) | `/api/weather`, 3시간 캐시. 실패 시 평년값 |
 | 예보 뒤 기간 | 울주 평년 월별 난방도일 | 2023~26 ERA5 계산 반올림 |
+| 등유 주유소 가격(실시간) | 오피넷 유가정보 API: 울주군 최저가 20곳 + 군 평균 | `/api/prices`, 1시간 캐시. 키가 없으면 아래 저장 자료 |
 | 등유 주유소 39곳 가격 | 오피넷 전국개별주유소가격 (2026-09-19) | `scripts/build_stations.py` → `src/data/stations.json` |
 | 읍면별 65·75·80세 이상 | 공공데이터포털 울주군 노인인구 현황 (2025-08-20) | `src/data/ulju.ts` |
 | 가구, 판매소, 바우처 잔액 | **가상** | `src/data/households.ts` |
@@ -41,17 +49,18 @@
 ## 실행
 
 ```bash
+cp .env.example .env.local   # GEMINI_API_KEY, OPINET_API_KEY 입력
 npm install
 npm run dev     # http://localhost:3000
 ```
 
 ## 배포 (Vercel)
 
-GitHub에 올린 뒤 Vercel에서 저장소를 Import 하면 됩니다. 환경 변수는 필요 없습니다.
+GitHub에 올린 뒤 Vercel에서 저장소를 Import 합니다. Project Settings → Environment Variables에 `GEMINI_API_KEY`, `OPINET_API_KEY`를 넣고 다시 배포합니다. 함수 지역은 서울(`icn1`, `vercel.json`)입니다.
 
 ## 한계
 
 - 가구 단위 예측은 실측 검증 전입니다(제주 시 단위 검증 + 가상 가구 모의실험).
-- AI 대화는 규칙 기반입니다. 실제 서비스에서는 생성형 AI가 듣고 말하기만 맡고, 숫자는 이 모델이 줍니다.
+- 공개 데모라 누구나 `/api/chat`을 부를 수 있습니다. 인스턴스별 분당 30회 제한만 있으니 Google AI Studio에서 사용 한도를 걸어 두세요.
 - 기온 격자가 커서 산간 효과가 덜 잡힙니다. 실제로는 기상청 동네예보·AWS를 씁니다.
 - 읍면 좌표는 지도 개략도용 근사값입니다.
