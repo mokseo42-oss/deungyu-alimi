@@ -19,7 +19,7 @@ const BRAND: Record<string, string> = {
   E1G: "E1",
   SKG: "SK가스",
 };
-const RENAME: Record<string, string> = { 청량면: "청량읍", 삼남면: "삼남읍" };
+const RENAME: Record<string, string> = { 청량면: "청량읍", 삼남면: "삼남읍", 범서면: "범서읍" };
 
 type OilRes<T> = { RESULT?: { OIL?: T[] } };
 
