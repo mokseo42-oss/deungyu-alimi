@@ -2,7 +2,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { resetDemo } from "@/lib/store";
-import { APP_NAME } from "@/lib/routes";
+import { APP_HOME, APP_NAME } from "@/lib/routes";
 
 const LINKS = [
   { href: "/households", label: "가구 잔량" },
@@ -17,10 +17,19 @@ export default function AppNav() {
   return (
     <header className="sticky top-0 z-20 h-[var(--nav-h)] border-b border-line bg-white/90 backdrop-blur">
       <div className="wrap flex h-full flex-wrap items-center gap-x-10 md:flex-nowrap">
-        <Link href="/" className="flex h-14 items-center gap-2.5 md:h-full" aria-label="등유 안심 소개 페이지로">
-          <span className="text-[19px] font-bold tracking-tight">등유 안심</span>
-          <span className="tag">{APP_NAME}</span>
-        </Link>
+        <div className="flex h-14 items-center gap-2.5 md:h-full">
+          <Link href="/" className="text-[19px] font-bold tracking-tight" aria-label="등유 안심 소개 페이지로">
+            등유 안심
+          </Link>
+          <Link
+            href={APP_HOME}
+            className="tag hover:bg-[#333333]"
+            aria-label={`${APP_NAME} 홈`}
+            aria-current={path === APP_HOME ? "page" : undefined}
+          >
+            {APP_NAME}
+          </Link>
+        </div>
         <nav
           aria-label={`${APP_NAME} 화면`}
           className="no-scrollbar order-last -mx-1 flex h-12 w-full items-center gap-x-5 overflow-x-auto whitespace-nowrap px-1 md:order-none md:mx-0 md:h-full md:w-auto md:flex-1 md:gap-x-9 md:px-0"

@@ -53,7 +53,7 @@ function HouseCard({ v, today }: { v: View; today: string }) {
   const level = Math.max(0, proj.levelToday);
   const toEmpty = proj.emptyDate ? daysBetween(today, proj.emptyDate) : null;
   return (
-    <section className="border-t border-ink pt-8">
+    <section id={`h-${h.id}`} className="border-t border-ink pt-8">
       <div className="flex flex-wrap items-start justify-between gap-x-6 gap-y-4">
         <div>
           <div className="flex flex-wrap items-center gap-x-4 gap-y-1">

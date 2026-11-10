@@ -4,30 +4,10 @@ import { SightGauge, StatusBadge } from "@/components/ui";
 import { EMDS } from "@/data/ulju";
 import { QUICK } from "@/lib/dialog";
 import { daysBetween, fmtDate, fmtL, fmtWon } from "@/lib/model";
+import { SCREENS } from "@/lib/routes";
 import { View, suggestLiters, useHouseholds } from "@/lib/useModel";
 
-const STEPS = [
-  {
-    title: "가구 잔량",
-    who: "생활지원사 · 가족",
-    body: "실제 울주 기온과 예보로 가상 가구 3곳의 남은 기름, 알림일, 소진일, 겨울 부족액을 매일 다시 계산합니다.",
-  },
-  {
-    title: "AI 전화",
-    who: "어르신",
-    body: "AI가 먼저 전화해 눈금을 묻고, 가격을 읽어 드리고, 동의하시면 주문을 넣습니다. 숫자는 모델이, 말은 AI가 맡습니다.",
-  },
-  {
-    title: "판매소",
-    who: "등유 판매소",
-    body: "들어온 주문을 확인 전화하고, 배달량을 입력하면 그 집 계수가 고쳐집니다. 이번 주 소진 예상 마을을 묶어 봅니다.",
-  },
-  {
-    title: "군 현황판",
-    who: "울주군 복지·에너지 담당",
-    body: "읍면별 노인 인구, 등유 주유소, 살펴봐 주세요 가구, 한파 위험, 겨울 부족액, 배관 우선 마을 근거를 한 화면에.",
-  },
-];
+const STEPS = SCREENS;
 
 const PIN_QUERY = "(min-width: 1024px) and (min-height: 640px)";
 
