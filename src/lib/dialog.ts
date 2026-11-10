@@ -62,7 +62,8 @@ export function parseGauge(text: string, tank: number): Intent | null {
 export function classify(text: string, tank: number, stage = "gauge"): Intent {
   const s = text.trim();
   if (has(s, /돈|비싸|아껴|아끼|형편|부담|못 사|없어서/)) return { t: "money" };
-  if (stage === "offer") {
+  // 확인 단계에서 양을 바꾸는 말도 승낙이 아니다(화면이 다시 묻는다)
+  if (stage === "offer" || stage === "confirm") {
     if (has(s, /반만|드럼 ?반/)) return { t: "amount", liters: 100 };
     const m = s.replace(/\s+/g, "").match(/(\d{2,3})(리터|L|l)/);
     if (m) return { t: "amount", liters: Math.min(tank, +m[1]) };
@@ -73,7 +74,12 @@ export function classify(text: string, tank: number, stage = "gauge"): Intent {
   if (has(s, /집을 ?비|집에 ?없|병원|아들 ?집|딸 ?집|자녀/)) return { t: "away" };
   if (has(s, /많아|넉넉|아직 ?있|충분/)) return { t: "plenty" };
   if (has(s, /아니|됐어|괜찮아|필요 ?없|나중에|안 ?해/)) return { t: "no" };
-  if (has(s, /^(네|예|응|어|그래|좋아|그러지|맞아)|시켜|주문|넣어|해 ?줘|부탁|연결/)) return { t: "yes" };
+  // 첫마디 "네/응/어"가 다른 낱말의 앞부분("네가", "어떡하지")이거나 되묻는 말("네?")이면 승낙이 아니다.
+  // 승낙 낱말이 있어도 부정이 붙으면 거절이다("주문하지 마", "안 할래", "취소해").
+  const yesHead = has(s, /^(네|예|응|어|그래|좋아|그러지|맞아)+($|[\s,.!~]|요)/);
+  if (yesHead || has(s, /시켜|시키|주문|넣어|해 ?줘|부탁|연결/)) {
+    return has(s, /지 ?마|지 ?말|않|안 ?(해|할|하|시|넣|사)|그만|취소|싫/) ? { t: "no" } : { t: "yes" };
+  }
   if (has(s, /잘 ?돌|따뜻|그럭저럭|괜찮게/)) return { t: "fine" };
   return { t: "unknown" };
 }
