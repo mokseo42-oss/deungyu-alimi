@@ -79,7 +79,7 @@ export default function ScreenTour() {
   return (
     <section id="screens" ref={outer} className="tour on-night bg-night text-white">
       <div className="tour-pin">
-        <div className="wrap w-full py-20 lg:py-0">
+        <div className="wrap tour-in w-full">
           <header className="text-center">
             <p className="text-[16px] md:text-[17px]">모두를 위한 등유 안심</p>
             <h2 className="mt-2 text-[26px] font-light leading-snug md:text-[32px]">
@@ -87,7 +87,7 @@ export default function ScreenTour() {
             </h2>
           </header>
 
-          <div className="mt-10 grid items-center gap-x-20 gap-y-10 lg:mt-12 lg:grid-cols-[minmax(0,5fr)_minmax(0,7fr)]">
+          <div className="tour-grid grid items-center gap-x-20 gap-y-10 lg:grid-cols-[minmax(0,5fr)_minmax(0,7fr)]">
             <div className="order-last flex justify-center lg:order-none lg:justify-end">
               <div className="tour-phone" aria-hidden="true">
                 {!a || !c || !weather ? (
@@ -113,13 +113,13 @@ export default function ScreenTour() {
                       type="button"
                       aria-current={on ? "step" : undefined}
                       onClick={() => pick(i)}
-                      className={`tour-step block w-full py-4 text-left lg:py-6 ${on ? "" : "opacity-50 hover:opacity-80"}`}
+                      className={`tour-step block w-full text-left ${on ? "" : "opacity-50 hover:opacity-80"}`}
                     >
                       <span className="flex flex-wrap items-baseline gap-x-4">
                         <span className="text-[26px] font-light leading-tight md:text-[30px]">{s.title}</span>
                         <span className="text-[15px] text-night-muted">{s.who}</span>
                       </span>
-                      <span className={`mt-3 max-w-xl text-[16px] leading-relaxed md:text-[18px] ${on ? "block" : "hidden lg:block"}`}>
+                      <span data-on={on} className="tour-body mt-3 max-w-xl text-[16px] leading-relaxed md:text-[18px]">
                         {s.body}
                       </span>
                     </button>

@@ -317,8 +317,22 @@
     background: #ffffff;
   }
   /* 검은 띠의 화면 둘러보기. 넓은 화면에서는 구역이 붙어 있는 동안 스크롤로 네 화면이 바뀐다 */
+  .tour-in {
+    padding-block: 80px;
+  }
+  .tour-grid {
+    margin-top: 40px;
+  }
   .tour-step {
+    padding-block: 16px;
     transition: opacity 0.25s;
+  }
+  /* 설명은 지금 단계만 보인다. 화면이 넉넉할 때만 나머지 단계 설명도 흐리게 함께 보인다 */
+  .tour-body {
+    display: none;
+  }
+  .tour-body[data-on="true"] {
+    display: block;
   }
   .tour-phone {
     width: min(100%, 280px);
@@ -329,6 +343,7 @@
     color: var(--ink);
     overflow: hidden;
   }
+  /* 붙어 있는 틀 안에 제목, 휴대폰, 네 단계가 모두 들어가도록 화면 높이에 맞춰 간격을 줄인다 */
   @media (min-width: 1024px) and (min-height: 640px) {
     .tour {
       height: calc(100vh - var(--nav-h) + 200vh);
@@ -338,11 +353,39 @@
       top: var(--nav-h);
       height: calc(100vh - var(--nav-h));
       display: flex;
-      align-items: center;
+      align-items: safe center;
+      overflow: hidden;
+    }
+    .tour-in {
+      padding-block: clamp(14px, 3vh, 40px);
+    }
+    .tour-grid {
+      margin-top: clamp(14px, 4vh, 48px);
+    }
+    .tour-step {
+      padding-block: clamp(6px, 1.6vh, 24px);
     }
     .tour-phone {
-      height: min(540px, calc(100vh - var(--nav-h) - 230px));
+      height: min(540px, calc(100vh - var(--nav-h) - 250px));
       width: 280px;
+    }
+  }
+  /* 창이 낮으면 휴대폰 그림을 통째로 줄여서 안쪽 내용이 잘리지 않게 한다 */
+  @media (min-width: 1024px) and (min-height: 640px) and (max-height: 780px) {
+    .tour-phone {
+      zoom: 0.82;
+      height: min(540px, calc((100vh - var(--nav-h) - 250px) / 0.82));
+    }
+  }
+  @media (min-width: 1024px) and (min-height: 640px) and (max-height: 680px) {
+    .tour-phone {
+      zoom: 0.7;
+      height: min(540px, calc((100vh - var(--nav-h) - 250px) / 0.7));
+    }
+  }
+  @media (min-width: 1280px) and (min-height: 900px) {
+    .tour-body {
+      display: block;
     }
   }
 
