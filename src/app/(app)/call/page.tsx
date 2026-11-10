@@ -36,16 +36,16 @@ function CallInner() {
   const { weather, error, views } = useHouseholds();
   const v = views?.find((x) => x.h.id === hid);
   return (
-    <div className="space-y-5">
-      <header className="flex flex-wrap items-end justify-between gap-3">
+    <div className="page space-y-10">
+      <header className="flex flex-wrap items-end justify-between gap-x-8 gap-y-5">
         <div>
-          <h1 className="text-2xl font-bold">AI 전화</h1>
-          <p className="mt-1 text-sm text-muted">
+          <h1 className="page-title">AI 전화</h1>
+          <p className="page-lead">
             어르신 창구는 화면이 아니라 음성입니다. 어르신 말은 생성형 AI(Gemini)가 알아듣고, 숫자는 모델이 계산합니다. AI 문장에
             모델에 없는 숫자가 섞이면 버립니다. 실제 전화망 연결은 하지 않습니다.
           </p>
         </div>
-        <div className="flex gap-1">
+        <div className="flex flex-wrap gap-2">
           {(views ?? []).map((x) => (
             <button
               key={x.h.id}
@@ -388,7 +388,7 @@ function CallSim({ v: live, today }: { v: View; today: string }) {
       <section className="card flex min-h-[520px] flex-col overflow-hidden">
         <div className="flex flex-wrap items-center justify-between gap-2 border-b border-line px-5 py-3">
           <div>
-            <div className="font-bold">
+            <div className="flex flex-wrap items-center gap-x-3 text-[17px] font-semibold">
               {h.label} <StatusBadge s={live.status} />
             </div>
             <div className="text-xs text-muted">
@@ -412,8 +412,8 @@ function CallSim({ v: live, today }: { v: View; today: string }) {
           {stage === "idle" && (
             <div className="grid h-full place-items-center py-10 text-center">
               <div>
-                <p className="text-sm text-muted">{h.scenario}</p>
-                <div className="mt-4 flex flex-wrap justify-center gap-2">
+                <p className="mx-auto max-w-lg text-[20px] font-light leading-relaxed">{h.scenario}</p>
+                <div className="mt-7 flex flex-wrap justify-center gap-2">
                   <button className="btn btn-primary" onClick={start}>
                     {h.channel === "AI 스피커" ? "AI 스피커 안내 시작" : "전화 걸기"}
                   </button>
@@ -486,7 +486,7 @@ function CallSim({ v: live, today }: { v: View; today: string }) {
                     onChange={(e) => setInput(e.target.value)}
                   />
                   <button type="button" className="btn" onClick={listen} disabled={listening}>
-                    {listening ? "듣는 중…" : "🎤 말하기"}
+                    {listening ? "듣는 중…" : "말하기"}
                   </button>
                   <button className="btn btn-primary" disabled={busy}>
                     보내기
@@ -501,7 +501,7 @@ function CallSim({ v: live, today }: { v: View; today: string }) {
       {/* 오른쪽: 모델 숫자, 가족 카톡, 기록 */}
       <aside className="space-y-4">
         <section className="card p-4 text-sm">
-          <h3 className="font-bold">AI가 읽는 숫자 (모델 계산)</h3>
+          <h3 className="sub-title">AI가 읽는 숫자 (모델 계산)</h3>
           <p className="mb-2 text-xs text-muted">AI는 이 값만 말하고 숫자를 지어내지 않습니다.</p>
           <dl className="num space-y-1">
             <Pair k="오늘 잔량(추정)" v={fmtL(Math.max(0, v.proj.levelToday))} />
@@ -554,7 +554,7 @@ function CallSim({ v: live, today }: { v: View; today: string }) {
         </section>
 
         <section className="card p-4 text-sm">
-          <h3 className="font-bold">기록</h3>
+          <h3 className="sub-title">기록</h3>
           {logs.length === 0 ? (
             <p className="mt-1 text-xs text-muted">아직 없음</p>
           ) : (

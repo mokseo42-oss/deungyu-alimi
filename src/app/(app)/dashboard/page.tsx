@@ -52,7 +52,12 @@ export default function Dashboard() {
     return { today, perEmd, coldRisk, coldDays };
   }, [weather, all, store.checks, st]);
 
-  if (!weather || !data) return <Loading error={error} />;
+  if (!weather || !data)
+    return (
+      <div className="page">
+        <Loading error={error} />
+      </div>
+    );
 
   const lookList = all
     .filter((v) => v.status === "check" || store.checks[v.h.id])
@@ -65,16 +70,16 @@ export default function Dashboard() {
   const anyCold = Object.values(data.coldDays).some((x) => x.length);
 
   return (
-    <div className="space-y-6">
-      <header className="flex flex-wrap items-end justify-between gap-3">
+    <div className="page space-y-12">
+      <header className="flex flex-wrap items-end justify-between gap-x-8 gap-y-5">
         <div>
-          <h1 className="text-2xl font-bold">울주군 현황판</h1>
-          <p className="mt-1 text-sm text-muted">
+          <h1 className="page-title">울주군 현황판</h1>
+          <p className="page-lead">
             복지 담당·생활지원사와 에너지 담당이 보는 화면입니다. 등록 가구 {all.length}곳 중 3곳은 시연 가구, 나머지는 가상 등록 가구입니다.
           </p>
           <WeatherNote fallback={weather.fallback} source={weather.source} />
         </div>
-        <div className="flex gap-1">
+        <div className="flex">
           <button className={`btn ${tab === "welfare" ? "btn-primary" : ""}`} onClick={() => setTab("welfare")}>
             복지·안전
           </button>
@@ -84,7 +89,7 @@ export default function Dashboard() {
         </div>
       </header>
 
-      <section className="grid grid-cols-2 gap-3 md:grid-cols-5">
+      <section className="grid grid-cols-2 gap-y-8 md:grid-cols-5">
         <Stat label="등록 가구 (가상 포함)" value={`${all.length}`} sub="1순위 4개 면 중심" />
         <Stat
           label="이번 주 먼저 전화"
@@ -98,7 +103,7 @@ export default function Dashboard() {
           label="한파 예보 위험 가구"
           value={anyCold ? `${data.coldRisk.length}` : "0"}
           sub={anyCold ? "7일 안 한파, 잔량 < 7일 사용량" : "7일 안 한파 신호 없음"}
-          tone="text-[#3b82f6]"
+          tone="text-cold"
         />
       </section>
 
@@ -106,12 +111,12 @@ export default function Dashboard() {
         <>
           <div className="grid gap-6 lg:grid-cols-[1fr_1.1fr]">
             <section className="card p-5">
-              <h2 className="font-bold">읍면 개략도</h2>
+              <h2 className="sec-title">읍면 개략도</h2>
               <p className="mt-1 text-xs text-muted">원 크기 = 65세 이상 인구, 진한 테두리 = 1순위. 숫자 = 이번 주 먼저 전화 / 살펴봐 주세요. 위치는 개략입니다.</p>
               <EmdMap rows={data.perEmd} />
             </section>
             <section className="card p-5">
-              <h2 className="font-bold text-check">살펴봐 주세요</h2>
+              <h2 className="sec-title text-check">살펴봐 주세요</h2>
               <p className="mt-1 text-xs text-muted">
                 판정이 아니라 방문 순서를 정하는 신호입니다. 예상 소진일 7일 뒤에도 주문이 없거나, 통화에서 기름값 부담을 말한 집입니다.
               </p>
@@ -122,7 +127,7 @@ export default function Dashboard() {
               </ul>
               {noAnswer.length > 0 && (
                 <div className="mt-4 border-t border-line pt-3">
-                  <h3 className="text-sm font-bold">안부 확인 필요 (통화 기록)</h3>
+                  <h3 className="sub-title">안부 확인 필요 (통화 기록)</h3>
                   <ul className="mt-1 space-y-1 text-xs">
                     {noAnswer.slice(0, 5).map((l) => (
                       <li key={l.id}>
@@ -136,7 +141,7 @@ export default function Dashboard() {
           </div>
 
           <section className="card overflow-x-auto p-5">
-            <h2 className="font-bold">읍면별 현황</h2>
+            <h2 className="sec-title">읍면별 현황</h2>
             <table className="tbl mt-3">
               <thead>
                 <tr>
@@ -181,7 +186,7 @@ export default function Dashboard() {
           </section>
 
           <section className="card overflow-x-auto p-5">
-            <h2 className="font-bold">이번 겨울 모자랄 돈이 큰 집</h2>
+            <h2 className="sec-title">이번 겨울 모자랄 돈이 큰 집</h2>
             <p className="mt-1 text-xs text-muted">남은 겨울 예상 사용량 × 오늘 가격 − 바우처 잔액. 긴급복지 연료비 같은 제도와 미리 잇는 데 씁니다.</p>
             <table className="tbl mt-3">
               <thead>
@@ -218,9 +223,9 @@ function LookItem({ v, today, state }: { v: View; today: string; state?: "요청
   const days = v.proj.emptyDate && v.proj.emptyDate <= today ? daysBetween(v.proj.emptyDate, today) : null;
   const demo = v.h.id.length === 1;
   return (
-    <li className={`rounded-lg border p-3 text-sm ${demo ? "border-check" : "border-line"}`}>
+    <li className={`border p-4 text-sm ${demo ? "border-ink" : "border-line"}`}>
       <div className="flex flex-wrap items-center justify-between gap-2">
-        <div className="font-semibold">
+        <div className="flex flex-wrap items-center gap-x-3 font-semibold">
           {v.h.label} <StatusBadge s={v.status} />
         </div>
         <div className="flex gap-1">
@@ -319,7 +324,7 @@ function EnergyTab({ rows }: { rows: Row[] }) {
   const sorted = [...rows].filter((r) => r.list.length).sort((a, b) => b.winterCost / b.list.length - a.winterCost / a.list.length);
   return (
     <section className="card overflow-x-auto p-5">
-      <h2 className="font-bold">도시가스·LPG 배관 우선 마을 근거</h2>
+      <h2 className="sec-title">도시가스·LPG 배관 우선 마을 근거</h2>
       <p className="mt-1 max-w-3xl text-sm text-muted">
         울주군은 2030년까지 도시가스와 마을 LPG 소형저장탱크로 1,000세대를 바꿀 계획입니다(100억 원). 등유 안심에 쌓이는 배달 기록으로
         &quot;어느 마을이 기름값을 가장 많이 내나&quot;를 보여 줄 수 있습니다. 아래는 가상 등록 가구로 만든 예시입니다.

@@ -52,39 +52,39 @@ export default function LevelChart({ v, horizon = 30 }: { v: View; horizon?: num
         {[0, 50, 100, 150, 200].filter((t) => t <= maxY).map((t) => (
           <g key={t}>
             <line x1={L} x2={W - R} y1={y(t)} y2={y(t)} stroke="var(--line)" />
-            <text x={L - 6} y={y(t) + 4} fontSize="10" textAnchor="end" fill="var(--muted)">
+            <text x={L - 6} y={y(t) + 4} fontSize="11" textAnchor="end" fill="var(--muted)">
               {t}
             </text>
           </g>
         ))}
         {minY < 0 && <rect x={L} y={y(0)} width={W - L - R} height={y(minY) - y(0)} fill="var(--empty)" opacity="0.07" />}
         <path d={th} fill="none" stroke="var(--chart-th)" strokeDasharray="4 4" strokeWidth="1.5" />
-        <path d={path((s) => s === "obs")} fill="none" stroke="var(--ink)" strokeWidth="2" />
+        <path d={path((s) => s === "obs")} fill="none" stroke="var(--ink)" strokeWidth="1.75" />
         <path d={path((s) => s === "fcst")} fill="none" stroke="var(--chart-fcst)" strokeWidth="3" />
         <path d={path((s) => s === "clim")} fill="none" stroke="var(--chart-fcst)" strokeWidth="2" strokeDasharray="2 4" />
         {ti >= 0 && (
           <g>
             <line x1={x(ti)} x2={x(ti)} y1={T} y2={H - B} stroke="var(--ink)" strokeWidth="1" />
-            <text x={x(ti) + 4} y={T + 10} fontSize="10" fill="var(--ink)">
+            <text x={x(ti) + 4} y={T + 10} fontSize="11" fill="var(--ink)">
               오늘
             </text>
           </g>
         )}
-        {alertI >= 0 && <circle cx={x(alertI)} cy={y(shown[alertI].level)} r="5" fill="var(--call)" />}
+        {alertI >= 0 && <circle cx={x(alertI)} cy={y(shown[alertI].level)} r="5" fill="#ffffff" stroke="var(--ink)" strokeWidth="2" />}
         {emptyI >= 0 && <circle cx={x(emptyI)} cy={y(0)} r="5" fill="var(--empty)" />}
         {shown.map((p, i) =>
-          p.cold && p.src !== "obs" ? <rect key={p.date} x={x(i) - 2} y={H - B + 2} width="4" height="5" fill="#3b82f6" /> : null,
+          p.cold && p.src !== "obs" ? <rect key={p.date} x={x(i) - 2} y={H - B + 2} width="4" height="5" fill="var(--cold)" /> : null,
         )}
-        <text x={L} y={H - 6} fontSize="10" fill="var(--muted)">
+        <text x={L} y={H - 6} fontSize="11" fill="var(--muted)">
           {fmtDate(shown[0]?.date ?? null)}
         </text>
-        <text x={W - R} y={H - 6} fontSize="10" textAnchor="end" fill="var(--muted)">
+        <text x={W - R} y={H - 6} fontSize="11" textAnchor="end" fill="var(--muted)">
           {fmtDate(shown[shown.length - 1]?.date ?? null)}
         </text>
         {hover != null && <line x1={x(hover)} x2={x(hover)} y1={T} y2={H - B} stroke="var(--muted)" strokeDasharray="2 2" />}
       </svg>
       {h && (
-        <div className="pointer-events-none absolute right-2 top-2 rounded-lg border border-line bg-panel px-3 py-2 text-xs shadow-sm">
+        <div className="pointer-events-none absolute right-2 top-2 border border-ink bg-panel px-3 py-2 text-xs">
           <div className="font-semibold">{fmtDate(h.date)}</div>
           <div className="num">
             잔량 {fmtL(h.level)} · 하루 {h.use.toFixed(1)}L
@@ -94,18 +94,36 @@ export default function LevelChart({ v, horizon = 30 }: { v: View; horizon?: num
           </div>
         </div>
       )}
-      <div className="mt-1 flex flex-wrap gap-x-4 gap-y-1 text-xs text-muted">
-        <span>━ 지난 기온으로 계산</span>
-        <span className="text-accent">━ 예보</span>
-        <span className="text-accent">┅ 평년값</span>
-        <span>┄ 알림 기준</span>
-        <span>
-          <span className="text-call">●</span> 알림일 <span className="text-empty">●</span> 소진일
-        </span>
-        <span>
-          <span className="text-[#3b82f6]">■</span> 한파 예보
-        </span>
-      </div>
+      <ul className="mt-3 flex flex-wrap gap-x-5 gap-y-2 text-[13px] text-muted">
+        <li className="flex items-center gap-2">
+          <span aria-hidden="true" className="w-5 border-t-2 border-ink" />
+          지난 기온으로 계산
+        </li>
+        <li className="flex items-center gap-2">
+          <span aria-hidden="true" className="w-5 border-t-[3px] border-fuel" />
+          예보
+        </li>
+        <li className="flex items-center gap-2">
+          <span aria-hidden="true" className="w-5 border-t-2 border-dotted border-fuel" />
+          평년값
+        </li>
+        <li className="flex items-center gap-2">
+          <span aria-hidden="true" className="w-5 border-t-2 border-dashed border-[#9a9a9a]" />
+          알림 기준
+        </li>
+        <li className="flex items-center gap-2">
+          <span aria-hidden="true" className="h-2.5 w-2.5 rounded-full border-2 border-ink bg-white" />
+          알림일
+        </li>
+        <li className="flex items-center gap-2">
+          <span aria-hidden="true" className="h-2.5 w-2.5 rounded-full bg-empty" />
+          소진일
+        </li>
+        <li className="flex items-center gap-2">
+          <span aria-hidden="true" className="h-2.5 w-1.5 bg-cold" />
+          한파 예보
+        </li>
+      </ul>
     </div>
   );
 }

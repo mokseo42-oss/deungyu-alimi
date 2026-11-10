@@ -26,20 +26,25 @@ export default function DealerPage() {
     return Object.entries(groups).sort((a, b) => b[1].length - a[1].length);
   }, [weather, synth, views]);
 
-  if (!views || !weather) return <Loading error={error} />;
+  if (!views || !weather)
+    return (
+      <div className="page">
+        <Loading error={error} />
+      </div>
+    );
 
   return (
-    <div className="space-y-6">
+    <div className="page space-y-12">
       <header>
-        <h1 className="text-2xl font-bold">판매소 화면</h1>
-        <p className="mt-1 text-sm text-muted">
+        <h1 className="page-title">판매소 화면</h1>
+        <p className="page-lead">
           AI는 주문만 전달합니다. 판매소가 어르신께 확인 전화를 하고, 배달 때 사람 앞에서 결제합니다. 배달량을 입력하면 그 집 계수가 다시
           계산됩니다. 문자 회신으로도 받을 수 있게 설계합니다.
         </p>
       </header>
 
       <section className="card p-5">
-        <h2 className="font-bold">오늘 들어온 주문</h2>
+        <h2 className="sec-title">오늘 들어온 주문</h2>
         {orders.length === 0 ? (
           <p className="mt-2 text-sm text-muted">아직 주문이 없습니다. AI 전화 화면에서 A 할머니와 통화해 주문을 넣어 보세요.</p>
         ) : (
@@ -68,7 +73,7 @@ export default function DealerPage() {
 
       <div className="grid gap-6 md:grid-cols-2">
         <section className="card p-5">
-          <h2 className="font-bold">이번 주 소진 예상 마을</h2>
+          <h2 className="sec-title">이번 주 소진 예상 마을</h2>
           <p className="mt-1 text-xs text-muted">
             7일 안에 알림일이 오는 등록 가구를 면별로 묶었습니다. 같은 마을을 한 번에 돌면 배달 횟수가 줄어듭니다(일본 실증: 급유 횟수 20%,
             배송 일수 36% 감소). 시연 가구 + 가상 등록 가구.
@@ -76,19 +81,19 @@ export default function DealerPage() {
           <ul className="mt-3 space-y-2">
             {week.length === 0 && <li className="text-sm text-muted">이번 주 예상 가구가 없습니다.</li>}
             {week.map(([emd, list]) => (
-              <li key={emd} className="rounded-lg border border-line p-3">
+              <li key={emd} className="border-b border-line py-4">
                 <div className="flex items-center justify-between">
                   <b>{emd}</b>
                   <span className="num text-sm">
                     {list.length}가구 · 약 {fmtL(list.reduce((a, v) => a + (v.h.tank - Math.max(0, v.proj.levelToday)), 0))}
                   </span>
                 </div>
-                <div className="mt-1 flex flex-wrap gap-1">
+                <div className="mt-2 flex flex-wrap gap-1.5">
                   {list
                     .sort((a, b) => (a.proj.alertDate ?? "").localeCompare(b.proj.alertDate ?? ""))
                     .slice(0, 12)
                     .map((v) => (
-                      <span key={v.h.id} className="rounded bg-accent-soft px-1.5 py-0.5 text-[11px]">
+                      <span key={v.h.id} className="bg-accent-soft px-2 py-1 text-xs">
                         {v.h.label.replace(`${emd} `, "")} ·{" "}
                         {v.proj.alertDate && v.proj.alertDate <= weather.today ? "오늘" : fmtDate(v.proj.alertDate).replace(/ \(.\)/, "")}
                       </span>
@@ -100,7 +105,7 @@ export default function DealerPage() {
         </section>
 
         <section className="card p-5">
-          <h2 className="font-bold">오늘 가격 입력</h2>
+          <h2 className="sec-title">오늘 가격 입력</h2>
           <p className="mt-1 text-xs text-muted">판매소 배달가는 공개 자료에 없어 판매소가 직접 입력합니다. AI 전화가 이 값을 읽습니다.</p>
           <div className="mt-3 space-y-2">
             {dealers.map((d) => {
