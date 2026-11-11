@@ -281,3 +281,85 @@ for (const [text, want] of faqCases) {
     assert.equal(dialog.faqTopic(text), want);
   });
 }
+
+// ---- 어르신이 먼저 거는 전화(2026-11-12, 제안서 4장 "어르신이 먼저 걸 때") ----
+// AI가 "무엇을 도와드릴까요?"라고 물은 단계(ask)
+const askCases = [
+  ["기름 시켜 줘", "order"],
+  ["기름 좀 갖다 줘", "order"],
+  ["배달 좀 해 주이소", "order"],
+  ["어제 딴 데서 넣었어", "elsewhere"],
+  ["한 드럼 넣었어", "elsewhere"], // 주문량이 아니라 이미 넣었다는 말이다
+  ["기름값이 없어", "money"],
+  ["기름이 없어", "gauge"], // 바닥났다는 말. 눈금 '바닥'으로 읽어 주문을 여쭌다
+  ["아니, 됐어", "no"],
+  ["이제 없어", "no"], // "더 도와드릴 일이 있으세요?"의 답
+  ["주문 안 해", "unknown"],
+  ["주문 취소해 줘", "unknown"], // 취소는 화면이 따로 안내한다. '아니'로 읽어 통화를 끝내면 취소된 줄 안다
+];
+
+for (const [text, want] of askCases) {
+  test(`먼저 건 전화: "${text}" → ${want}`, () => {
+    assert.equal(intentOf(text, "ask"), want);
+  });
+}
+
+test("먼저 건 전화: 양을 말하면 그 양으로 읽는다", () => {
+  assert.deepEqual(classify("반 드럼만 시켜 줘", TANK, "ask"), { t: "amount", liters: 100 });
+  assert.deepEqual(classify("한 드럼 갖다 줘", TANK, "ask"), { t: "amount", liters: 200 });
+  assert.deepEqual(classify("어제 딴 데서 한 드럼 넣었어", TANK, "ask"), { t: "elsewhere", liters: 200 });
+});
+
+// 급한 말과 사람을 찾는 말은 어느 단계에서든 주문 대화를 멈춘다
+const urgentCases = [
+  ["몸이 안 좋아", "emergency"],
+  ["가슴이 아파", "emergency"],
+  ["어지러워서 쓰러질 것 같아", "emergency"],
+  ["보일러가 안 켜져", "boiler"],
+  ["보일러가 고장 났어", "boiler"],
+  ["사람이랑 얘기할래", "human"],
+  ["사람 좀 바꿔 줘", "human"],
+  ["상담원 연결해 줘", "human"],
+  ["이거 사기 아니야?", "distrust"],
+  ["못 믿겠어", "distrust"],
+  ["보이스피싱 아이가", "distrust"],
+];
+
+for (const [text, want] of urgentCases) {
+  for (const stage of ["ask", "since", "offer", "confirm", "checkin"]) {
+    test(`${stage} 단계: "${text}" → ${want}`, () => {
+      assert.equal(intentOf(text, stage), want);
+    });
+  }
+}
+
+// 낱말만 겹치는 말은 급한 말이 아니다
+for (const text of ["보일러 잘 돌려", "병원 갔다 왔어", "안 아파", "아들 아파트에 갔다 왔어", "기름 사기 힘들어", "사람이 아니네"]) {
+  test(`"${text}"는 급한 말이 아니다`, () => {
+    assert.equal(dialog.urgentIntent(text), null);
+  });
+}
+
+test("급한 말이 아니면 원래 뜻대로 읽는다", () => {
+  assert.equal(intentOf("보일러 잘 돌려", "checkin"), "fine");
+  assert.equal(intentOf("병원 갔다 왔어", "checkin"), "away");
+});
+
+test("급한 말은 길거나 묻는 꼴이어도 Gemini를 기다리지 않는다", () => {
+  assert.equal(dialog.ruleIsEnough("어지러워서 쓰러질 것 같은데 우리 딸한테 전화 좀 해 줘", { t: "emergency" }), true);
+  assert.equal(dialog.ruleIsEnough("이거 사기 아니야?", { t: "distrust" }), true);
+});
+
+// 먼저 건 전화에서 자주 나오는 질문
+const askFaq = [
+  ["기름 얼마나 남았어?", "level"],
+  ["언제쯤 떨어져?", "level"],
+  ["오늘 등유 얼마야?", "price"],
+  ["어 그래? 얼만데?", "price"],
+];
+
+for (const [text, want] of askFaq) {
+  test(`자주 나오는 질문: "${text}" → ${want}`, () => {
+    assert.equal(dialog.faqTopic(text), want);
+  });
+}

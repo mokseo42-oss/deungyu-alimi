@@ -4,7 +4,7 @@
 // - LLM 문장에 사실 목록에 없는 숫자가 들어 있으면 그 문장을 버린다(숫자 지어내기 방지).
 // - 키가 없거나 Gemini가 실패하면 낱말 규칙의 답을 쓴다.
 import { NextRequest, NextResponse } from "next/server";
-import { ALLOWED, Facts, Intent, Understood, classify, isQuestion, numbersOk, ruleIsEnough, safeIntent } from "@/lib/dialog";
+import { ALLOWED, Facts, Intent, URGENT, Understood, classify, isQuestion, numbersOk, ruleIsEnough, safeIntent } from "@/lib/dialog";
 import { GEMINI_MODEL, geminiJSON, hasGemini } from "@/lib/gemini";
 
 export const dynamic = "force-dynamic";
@@ -27,6 +27,7 @@ function limited(ip: string) {
 const DONT_KNOW = "그건 제가 정확히 알지 못해요. 판매소에서 확인 전화드릴 때 여쭤봐 주세요.";
 
 const STAGE_DESC: Record<string, string> = {
+  ask: "어르신이 저장해 둔 번호로 먼저 전화를 걸어 왔고, AI가 '무엇을 도와드릴까요?'라고 물었다.",
   since: "AI가 기름이 곧 떨어질 것 같다고 알리고 '지난번 배달 뒤에 다른 데서 기름 넣으신 적 있으세요?'라고 물었다.",
   bought: "어르신이 다른 데서 기름을 넣었다고 해서 AI가 '얼마나 넣으셨어요?'라고 물었다.",
   gauge: "AI가 보일러 기름탱크 눈금이 지금 어디쯤인지 물었다.",
@@ -47,10 +48,15 @@ const INTENT_DESC = `의도 설명:
 - unsure: 모르겠다, 기억이 안 난다, 탱크가 밖에 있어 눈금을 못 본다.
 - away: 집을 비웠다(병원, 자녀 집 등).
 - fine: 보일러를 잘 돌리고 있다, 따뜻하다.
+- order: 기름을 시켜 달라고 함(양은 말하지 않음). 양을 말했으면 amount.
+- emergency: 몸이 아프다, 쓰러졌다, 숨이 차다처럼 건강이 급하다는 말. 다른 모든 의도보다 우선한다.
+- boiler: 보일러가 켜지지 않는다, 고장 났다.
+- human: AI 말고 사람과 통화하고 싶다.
+- distrust: 이 전화를 믿지 못하겠다, 사기나 보이스피싱 같다.
 - question: 배달 날짜, 가격, 남은 기름, 결제 방법 등 서비스에 대해 질문함. answer에 사실 목록만 근거로 답을 쓴다. 사실 목록에 없으면 "그건 제가 정확히 몰라서 판매소에서 확인 전화드릴 때 여쭤봐 주세요" 같은 식으로 답한다.
 - unknown: 질문과 상관없는 말, 앞뒤가 맞지 않는 말, 알아듣기 어려운 말. 확실하지 않으면 unknown을 고른다.`;
 
-const SYSTEM = `너는 울산 울주군 '등유 안심' 서비스의 AI 전화 상담원이다. 혼자 사는 어르신께 보일러 등유가 떨어지기 전에 전화한다.
+const SYSTEM = `너는 울산 울주군 '등유 안심' 서비스의 AI 전화 상담원이다. 혼자 사는 어르신께 보일러 등유가 떨어지기 전에 전화한다. 어르신이 같은 번호로 먼저 전화를 걸어 오기도 한다.
 너의 일은 어르신의 마지막 대답을 이해해 의도를 고르고, 필요하면 짧은 한국어 문장을 만드는 것이다.
 규칙:
 1. 반드시 허용된 의도 중 하나만 고른다.
@@ -65,7 +71,10 @@ const SCHEMA = {
   properties: {
     intent: {
       type: "STRING",
-      enum: ["gauge", "plenty", "yes", "no", "amount", "money", "elsewhere", "unsure", "away", "fine", "question", "unknown"],
+      enum: [
+        "gauge", "plenty", "yes", "no", "amount", "money", "elsewhere", "unsure", "away", "fine",
+        "order", "emergency", "boiler", "human", "distrust", "question", "unknown",
+      ],
     },
     gauge_fraction: { type: "NUMBER", nullable: true },
     gauge_liters: { type: "NUMBER", nullable: true },
@@ -155,7 +164,8 @@ ${history.join("\n") || "(없음)"}
     if (!allowed.includes(o.intent)) o.intent = "unknown";
     const intent = safeIntent(toIntent(o, tank), text, stage);
     let say = (o.say ?? "").trim().slice(0, 60);
-    if (/\d/.test(say) || intent.t === "unknown" || intent.t === "question") say = "";
+    // 급한 말에는 화면이 정해진 안내만 한다(LLM 한마디를 붙이지 않는다)
+    if (/\d/.test(say) || intent.t === "unknown" || intent.t === "question" || URGENT.includes(intent.t)) say = "";
     let answer = (o.answer ?? "").trim().slice(0, 200);
     if (intent.t === "question" && (!answer || !numbersOk(answer, facts))) answer = DONT_KNOW;
     const out: Understood = { intent, say: say || undefined, answer: intent.t === "question" ? answer : undefined, source: "gemini" };

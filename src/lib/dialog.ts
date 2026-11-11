@@ -14,14 +14,23 @@ export type Intent =
   | { t: "away" }
   | { t: "fine" }
   | { t: "unsure" } // 모르겠다, 눈금을 못 본다
+  | { t: "order" } // 먼저 건 전화에서 기름을 시켜 달라고 함(양은 말하지 않음)
+  | { t: "emergency" } // 몸이 아프다
+  | { t: "boiler" } // 보일러가 켜지지 않는다
+  | { t: "human" } // 사람과 통화하고 싶다
+  | { t: "distrust" } // 전화를 믿지 못하겠다
   | { t: "question" }
   | { t: "unknown" };
 
-// since: 다른 데서 넣은 적이 있는지, bought: 얼마나 넣었는지
-export type Stage = "idle" | "since" | "bought" | "gauge" | "offer" | "confirm" | "checkin" | "money" | "done";
+// ask: 어르신이 먼저 걸어 와 무엇을 도울지 물은 단계, since: 다른 데서 넣은 적이 있는지, bought: 얼마나 넣었는지
+export type Stage = "idle" | "ask" | "since" | "bought" | "gauge" | "offer" | "confirm" | "checkin" | "money" | "done";
 
-// 단계마다 받을 수 있는 의도
-export const ALLOWED: Record<string, Intent["t"][]> = {
+// 어느 단계에서든 받는 말. 주문 대화를 멈추고 화면이 정해진 안내를 한다
+export const URGENT: Intent["t"][] = ["emergency", "boiler", "human", "distrust"];
+
+// 단계마다 받을 수 있는 의도(여기에 URGENT가 더해진다)
+const BY_STAGE: Record<string, Intent["t"][]> = {
+  ask: ["order", "amount", "elsewhere", "gauge", "money", "no", "question", "unknown"],
   since: ["no", "yes", "elsewhere", "plenty", "gauge", "unsure", "money", "question", "unknown"],
   bought: ["amount", "unsure", "question", "unknown"],
   gauge: ["gauge", "plenty", "unsure", "money", "question", "unknown"],
@@ -30,9 +39,13 @@ export const ALLOWED: Record<string, Intent["t"][]> = {
   checkin: ["fine", "gauge", "elsewhere", "away", "money", "question", "unknown"],
   money: ["yes", "no", "question", "unknown"],
 };
+export const ALLOWED: Record<string, Intent["t"][]> = Object.fromEntries(
+  Object.entries(BY_STAGE).map(([stage, list]) => [stage, [...list, ...URGENT]]),
+);
 
 // 질문에 답한 뒤 다시 묻는 말
 export const REASK: Record<string, string> = {
+  ask: "더 도와드릴 일이 있으세요?",
   since: "지난번 배달 뒤에 다른 데서 기름 넣으신 적 있으세요?",
   bought: "얼마나 넣으셨어요?",
   gauge: "그럼 탱크 눈금은 네 칸 중 몇 칸쯤 남았나요?",
@@ -57,7 +70,7 @@ const has = (s: string, re: RegExp) => re.test(s.replace(/\s+/g, " "));
 
 export function parseGauge(text: string, tank: number): Intent | null {
   const s = text.replace(/\s+/g, "");
-  if (/바닥|거의없|다떨어|다썼|다됐|간당/.test(s)) return { t: "gauge", liters: Math.round(tank * 0.05), label: "바닥" };
+  if (/바닥|거의없|기름이?없|다떨어|다썼|다됐|간당/.test(s)) return { t: "gauge", liters: Math.round(tank * 0.05), label: "바닥" };
   if (/(한|1)(칸|눈금)/.test(s)) return { t: "gauge", liters: tank / 4, label: "네 칸 중 한 칸" };
   if (/(두|2)(칸|눈금)|반/.test(s) && !/반만/.test(s)) return { t: "gauge", liters: tank / 2, label: "반" };
   if (/(세|3)(칸|눈금)/.test(s)) return { t: "gauge", liters: (tank * 3) / 4, label: "네 칸 중 세 칸" };
@@ -96,9 +109,26 @@ function clearYes(text: string) {
   return words.every((w) => strong(w) || FILL_WORD.test(w)) && words.some(strong);
 }
 
+// 승낙 낱말이 있어도 이 말이 붙으면 승낙이 아니다("주문하지 마", "안 할래", "취소해")
+const NEGATED = /지 ?마|지 ?말|않|안 ?(해|할|하|시|넣|사)|그만|취소|싫/;
+
+// 급한 말과 사람을 찾는 말. 어느 단계에서든 낱말 규칙이 바로 읽는다(Gemini를 기다리지 않는다)
+export function urgentIntent(text: string): Intent | null {
+  const s = text.replace(/\s+/g, " ");
+  const hurts = /아파(?!트)|아프/.test(s) && !/안 ?아[파프]|아프지 ?않/.test(s); // '아파트'는 아니다
+  if (hurts || /몸이 ?안 ?좋|쓰러|어지러|숨이 ?(차|막|안)|가슴이|살려|119/.test(s)) return { t: "emergency" };
+  if (/보일러.*(안 ?켜[져지]|안 ?돌아|안 ?[돼되]|고장|꺼졌|꺼져)|불이 ?안 ?(들어|붙)/.test(s)) return { t: "boiler" };
+  if (/사람.{0,6}(얘기|이야기|통화|바꿔|불러|연결)|상담원/.test(s)) return { t: "human" };
+  // '사기'는 속인다는 뜻일 때만("기름 사기 힘들어"는 아니다)
+  if (/못 ?믿|보이스 ?피싱|피싱|수상|의심|사기 ?(꾼|치|전화|아니|아이|지|야|인|같)/.test(s)) return { t: "distrust" };
+  return null;
+}
+
 export function classify(text: string, tank: number, stage = "gauge"): Intent {
   const s = text.trim();
-  if (has(s, /돈|비싸|아껴|아끼|형편|부담|못 사|없어서/)) return { t: "money" };
+  const urgent = urgentIntent(s);
+  if (urgent) return urgent;
+  if (has(s, /돈|비싸|아껴|아끼|형편|부담|못 사|없어서|값이 ?(없|모자|부족)/)) return { t: "money" };
   // 확인 단계에서 양을 바꾸는 말도 승낙이 아니다(화면이 바뀐 양으로 다시 묻는다)
   if (stage === "offer" || stage === "confirm" || stage === "bought") {
     const liters = parseAmount(s, tank);
@@ -111,8 +141,19 @@ export function classify(text: string, tank: number, stage = "gauge"): Intent {
     const liters = parseAmount(s, tank);
     return liters ? { t: "elsewhere", liters } : { t: "elsewhere" };
   }
+  // 먼저 건 전화. "한 드럼 넣었어"(다른 데서 넣음)는 위에서 걸렀으니, 여기 남은 양은 주문량이다
+  if (stage === "ask") {
+    const liters = parseAmount(s, tank);
+    if (liters) return { t: "amount", liters };
+    // "주문 안 해", "주문 취소해 줘"는 주문도 거절도 아니다(취소는 화면이 따로 안내한다)
+    if (!isQuestion(s) && has(s, /시켜|시키|주문|넣어 ?(줘|주|도)|갖다 ?(줘|주|도)|배달|채워/)) {
+      return has(s, NEGATED) ? { t: "unknown" } : { t: "order" };
+    }
+    // "더 도와드릴 일이 있으세요?"의 답. "기름이 없어"는 여기 해당하지 않는다
+    if (/^(아니[요오]?,? ?)?(이제 ?|더 ?)?(없어요?|없다|없심더|없습니다)[.!]?$/.test(s)) return { t: "no" };
+  }
   // "반", "가득"은 눈금을 물었거나 물을 수 있는 단계에서만 눈금이다
-  if (stage === "gauge" || stage === "checkin" || stage === "since") {
+  if (stage === "gauge" || stage === "checkin" || stage === "since" || stage === "ask") {
     const g = parseGauge(s, tank);
     if (g) return g;
   }
@@ -126,7 +167,7 @@ export function classify(text: string, tank: number, stage = "gauge"): Intent {
   // 승낙 낱말이 있어도 부정이 붙으면 거절이다("주문하지 마", "안 할래", "취소해").
   const yesHead = has(s, /^(네|예|응|어|그래|좋아|그러지|맞아|오야|오냐)+($|[\s,.!~]|요)/);
   const yesish = yesHead || has(s, /시켜|시키|주문|넣어|해 ?(줘|주)|부탁|연결|채워|주이소|하이소|하소/);
-  if (yesish && has(s, /지 ?마|지 ?말|않|안 ?(해|할|하|시|넣|사)|그만|취소|싫/)) return { t: "no" };
+  if (yesish && has(s, NEGATED)) return { t: "no" };
   // 승낙이 곧 행동인 단계는 문장 전체가 승낙일 때만 승낙으로 읽는다("어 잠깐만, 누구라고?"는 주문이 아니다)
   if (ACTION_STAGES.includes(stage) ? clearYes(s) : yesish) return { t: "yes" };
   if (has(s, /잘 ?돌|따뜻|그럭저럭|괜찮게/)) return { t: "fine" };
@@ -138,16 +179,19 @@ export const isQuestion = (text: string) => /\?|언제|얼마|어떻게|어디|�
 
 // 낱말 규칙의 답만으로 충분한가. 모르는 말, 질문, 긴 말은 Gemini에 보낸다
 export function ruleIsEnough(text: string, intent: Intent) {
+  if (URGENT.includes(intent.t)) return true; // 급한 말은 길거나 묻는 꼴이어도 기다리지 않는다
   return intent.t !== "unknown" && !isQuestion(text) && text.trim().split(/\s+/).length <= 4;
 }
 
 // 자주 나오는 질문의 종류. Gemini가 답하지 못할 때 화면이 사실 목록의 값으로 바로 답하는 데 쓴다
-export function faqTopic(text: string): "pay" | "delivery" | "cheaper" | "who" | null {
+export function faqTopic(text: string): "pay" | "delivery" | "cheaper" | "who" | "level" | "price" | null {
   const s = text.replace(/\s+/g, " ");
   if (/(값|돈|기름값)[은는이가]? ?(언제|어떻게|뭐로).*(내|줘|결제|계산)|결제|카드로/.test(s)) return "pay";
   if (/(언제|며칠).*(갖다|배달|와|걸려)|배달.*(언제|며칠)/.test(s)) return "delivery";
   if (/(다른|딴) ?(데|곳).*(얼마|싸|싼)|더 ?싼|싼 ?(데|곳)/.test(s)) return "cheaper";
   if (/어디서.*(전화|연락)|누구/.test(s)) return "who";
+  if (/(기름|탱크).*(얼마|몇).*(남|있)|(얼마나?|몇 ?(리터|칸)).*남|언제.*(떨어|바닥)/.test(s)) return "level";
+  if (/얼마(야|예요|에요|고|요|니|인데|지)|얼만데|얼만가|(가격|값).*(얼마|알려)/.test(s)) return "price";
   return null;
 }
 
@@ -184,6 +228,7 @@ export async function understand(
 
 // 화면의 빠른 답 버튼. 물음표로 끝나는 질문은 낱말 규칙이 읽지 못해 Gemini가 답한다
 export const QUICK: Record<string, string[]> = {
+  ask: ["기름 시켜 줘", "반 드럼만 시켜 줘", "기름 얼마나 남았어?", "오늘 등유 얼마야?", "어제 딴 데서 넣었어", "기름값이 없어", "보일러가 안 켜져", "몸이 안 좋아", "사람이랑 얘기할래"],
   since: ["아니, 없어", "지난주에 딴 데서 넣었어", "아직 많아", "돈이 없어서 아껴 써", "어디서 전화하는 거요?"],
   bought: ["반 드럼", "한 드럼", "모르겠어"],
   gauge: ["아래서 한 칸 남았나", "세 칸쯤 있어", "바닥이야", "밖에 있어서 못 봐"],

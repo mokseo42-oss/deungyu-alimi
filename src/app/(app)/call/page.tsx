@@ -42,7 +42,7 @@ function CallInner() {
         <div>
           <h1 className="page-title">AI 전화</h1>
           <p className="page-lead">
-            어르신 창구는 화면이 아니라 음성입니다. &quot;네&quot;, &quot;반 드럼만&quot;처럼 분명한 말은 낱말 규칙이 바로 읽고, 질문이나 돌려
+            어르신 창구는 화면이 아니라 음성입니다. AI가 먼저 걸기도 하고, 어르신이 같은 번호로 먼저 걸어 주문하거나 물어보기도 합니다. &quot;네&quot;, &quot;반 드럼만&quot;처럼 분명한 말은 낱말 규칙이 바로 읽고, 질문이나 돌려
             하는 말은 생성형 AI(Gemini)가 읽습니다. 숫자는 모델이 계산하고, AI 문장에 모델에 없는 숫자가 섞이면 버립니다. 실제
             전화망 연결은 하지 않습니다.
           </p>
@@ -77,6 +77,10 @@ function speak(text: string, on: boolean) {
 
 const HONOR: Record<string, string> = { 딸: "따님", 아들: "아드님" };
 
+// 지금 한국 시각의 시(0~23)
+const kstHour = () => new Date(Date.now() + 9 * 3600 * 1000).getUTCHours();
+const clock = (hr: number) => `${hr < 12 ? "오전" : "오후"} ${hr % 12 || 12}시`;
+
 function CallSim({ v: live, today }: { v: View; today: string }) {
   const s = useStore();
   const [snap, setSnap] = useState<View>(live); // 통화 중에는 시작 때 숫자로 고정
@@ -92,6 +96,10 @@ function CallSim({ v: live, today }: { v: View; today: string }) {
   const [listening, setListening] = useState(false);
   const [busy, setBusy] = useState(false);
   const [lastNote, setLastNote] = useState<string | undefined>(); // 방금 대답을 어떻게 읽었는지(배지에 마우스를 올리면 보임)
+  const [hour, setHour] = useState(10); // 통화하는 시각(시). AI가 거는 전화는 오전 10시, 어르신이 거는 전화는 지금 시각
+  const [inbound, setInbound] = useState(false); // 어르신이 먼저 건 전화인가
+  // 판매소와 생활지원사가 일하지 않는 시간(단순화: 저녁 6시부터 아침 9시까지. 주말은 따로 보지 않는다)
+  const night = hour < 9 || hour >= 18;
   const endRef = useRef<HTMLDivElement>(null);
   const leadRef = useRef<string | null>(null); // LLM 공감 한마디를 다음 AI 말 앞에 붙임
   const engine = useEngine();
@@ -120,11 +128,31 @@ function CallSim({ v: live, today }: { v: View; today: string }) {
   };
   const sys = (text: string) => setMsgs((m) => [...m, { who: "sys", text }]);
 
-  function start() {
+  // 통화를 새로 시작할 때 지난 통화의 흔적을 지운다. at: 통화하는 시각(시)
+  function reset(at: number, fromElder: boolean) {
     window.speechSynthesis?.cancel();
     setSnap(live);
     setMsgs([]);
     setMiss(0);
+    setHour(at);
+    setInbound(fromElder);
+    setLevel(Math.max(0, live.proj.levelToday));
+    setLiters(suggestLiters(h.tank, live.proj.levelToday));
+  }
+
+  // 어르신이 먼저 거는 전화(제안서 4장). 거는 번호와 받는 번호가 같아서 저장해 둔 번호로 걸면 된다
+  function startInbound() {
+    const at = kstHour();
+    reset(at, true);
+    sys(phone ? `${fmtDate(today)} ${clock(at)}, 어르신이 저장해 둔 번호로 전화를 겁니다` : "어르신이 AI 스피커에 먼저 말을 겁니다");
+    // '살펴봐 주세요' 집은 통화에서 주문해도 생활지원사가 '해결'로 닫을 때까지 남긴다
+    if (live.status === "check") update((st) => ({ ...st, checks: { ...st.checks, [h.id]: st.checks[h.id] ?? "요청" } }));
+    ai(phone ? "네, 울주군 등유 안심 AI입니다. 무엇을 도와드릴까요?" : "네, 등유 안심 AI예요. 무엇을 도와드릴까요?");
+    setStage("ask");
+  }
+
+  function start() {
+    reset(10, false); // AI가 거는 전화는 오전 10시
     const p = live.proj;
     const hello =
       h.channel === "AI 스피커"
@@ -184,6 +212,50 @@ function CallSim({ v: live, today }: { v: View; today: string }) {
     ai(sorry ? `죄송해요, 제가 잘 못 알아들었어요. ${prompt}` : prompt);
   }
 
+  // 아래 넷은 어느 단계에서든 주문 대화를 멈추는 말이다(제안서 4장)
+  // 몸이 안 좋다: 119를 안내하고 가족과 생활지원사에게 바로 알린다
+  function emergency() {
+    ai(`많이 편찮으시면 지금 바로 119에 전화하세요. 주문 이야기는 여기서 멈출게요. ${h.family ? `${who}과 생활지원사 선생님께` : "생활지원사 선생님께"} 바로 알릴게요.`);
+    sys(`몸이 안 좋다고 하심 → 주문 대화를 멈춤. ${h.family ? "가족과 생활지원사" : "생활지원사"}에게 바로 알림`);
+    addLog(h.id, "안부 확인 필요", "통화 중 몸이 안 좋다고 하심 · 119 안내");
+    if (h.family) addFamily(h.id, `[등유 안심] 방금 부모님(${h.label})께서 통화 중에 몸이 안 좋다고 하셨어요. 바로 연락해 봐 주세요. 급하면 119에 전화하시라고 안내드렸습니다.`);
+    update((st) => ({ ...st, checks: { ...st.checks, [h.id]: "요청" } }));
+    setStage("done");
+  }
+
+  // 보일러가 안 켜진다: 판매소와 가족에게 잇는다
+  function boilerHelp() {
+    const empty = v.proj.levelToday <= 0 ? " 제 계산으로는 기름이 다 떨어졌을 수도 있어요." : "";
+    ai(`보일러가 안 켜지는군요. 주문 이야기는 여기서 멈출게요.${empty} ${dealer}에 봐 달라고 전하고, ${who}께도 알릴게요.`);
+    sys(`보일러가 켜지지 않음 → 주문 대화를 멈춤. 판매소와 ${h.family ? "가족" : "생활지원사"}에게 알림`);
+    addLog(h.id, "확인 필요", `보일러가 켜지지 않는다고 하심 · ${h.dealer}에 전달`);
+    if (h.family) addFamily(h.id, `[등유 안심] 부모님(${h.label})께서 보일러가 켜지지 않는다고 하셨어요. ${dealer}에 봐 달라고 전했습니다. 한번 연락해 봐 주세요.`);
+    setStage("done");
+  }
+
+  // 사람과 통화하고 싶다: 근무시간에는 바로 잇고, 밤에는 다음 날 아침 전화를 잡는다
+  function toHuman() {
+    if (night) {
+      ai("네, 사람과 통화하시게 할게요. 지금은 근무시간이 아니라서, 내일 아침에 생활지원사 선생님이 전화드리도록 해 둘게요.");
+      sys("사람과 통화 요청 → 내일 아침 전화 예약 (생활지원사)");
+    } else {
+      ai("네, 사람과 통화하시게 할게요. 생활지원사 선생님께 연결해 드릴 테니 잠시만 기다려 주세요.");
+      sys("사람과 통화 요청 → 생활지원사에게 연결");
+    }
+    addLog(h.id, "확인 필요", `사람과 통화를 원하심 · ${night ? "내일 아침 전화 예약" : "생활지원사 연결"}`);
+    setStage("done");
+  }
+
+  // 전화를 믿지 못하겠다: 주문하지 않고, 끊고 저장된 번호로 다시 거시라고 안내한다. 가족에게도 알린다
+  function distrust() {
+    const back = phone ? " 지금 끊으시고, 저장해 두신 등유 안심 번호로 다시 걸어 보셔도 돼요. 거는 번호와 받는 번호가 같아요." : "";
+    ai(`그러실 수 있어요. 주문은 넣지 않을게요.${back}${h.family ? ` ${who}께도 오늘 연락드렸다고 알려 둘게요.` : ""}`);
+    sys(`전화를 믿기 어려워하심 → 주문하지 않음${h.family ? ". 가족에게 알림" : ""}`);
+    addLog(h.id, "확인 필요", "AI 전화를 믿기 어려워하심 · 주문하지 않음");
+    if (h.family) addFamily(h.id, `[등유 안심] 오늘 부모님(${h.label})께 연락드렸는데 전화를 믿기 어려워하셨어요. 등유 안심이 맞다고 한번 말씀해 주세요. 주문은 넣지 않았습니다.`);
+    setStage("done");
+  }
+
   // 바우처 잔액은 말하지 않는다. 기관과 연계하기 전에는 AI가 알 수 없는 값이라 제도만 안내한다
   function moneyFlow() {
     ai("기름값이 부담되시지요. 등유를 쓰시는 바우처 가구는 등유 추가지원이 있어요. 생활지원사 선생님께 연결해 드릴까요? 원하지 않으시면 연결하지 않아요.");
@@ -227,6 +299,9 @@ function CallSim({ v: live, today }: { v: View; today: string }) {
   function placeOrder() {
     const id = uid();
     const needFamily = h.approval === "가족 승인";
+    // 밤에 받은 주문은 다음 날 아침에 판매소로 들어간다
+    const confirmCall = night ? "내일 아침에 주문이 들어가고, 그때 상회에서 확인 전화를 드릴 거예요" : "상회에서 확인 전화를 드릴 거예요";
+    const pay = "값은 배달 오면 그때 카드나 국민행복카드로 내시면 됩니다. 저는 돈이나 카드 번호를 절대 묻지 않아요.";
     update((st) => ({
       ...st,
       orders: [
@@ -236,7 +311,7 @@ function CallSim({ v: live, today }: { v: View; today: string }) {
           liters,
           price: v.price,
           dealer: h.dealer,
-          via: h.channel,
+          via: inbound ? `${h.channel} (어르신이 먼저)` : h.channel,
           createdAt: nowISO(),
           status: needFamily ? "가족 승인 대기" : "접수",
         },
@@ -250,12 +325,12 @@ function CallSim({ v: live, today }: { v: View; today: string }) {
         `[등유 안심] 부모님(${h.label})께서 등유 ${liters}L(${fmtWon(liters * v.price)}) 주문을 원하세요. 승인하시면 ${dealer}에 전달됩니다.`,
         id,
       );
-      ai(`${who}께 승인 요청을 보냈어요. 승인되면 상회에서 확인 전화를 드릴 거예요. 값은 배달 오면 그때 카드나 국민행복카드로 내시면 됩니다. 저는 돈이나 카드 번호를 절대 묻지 않아요.`);
+      ai(`${who}께 승인 요청을 보냈어요. 승인되면 ${confirmCall}. ${pay}`);
     } else {
       if (h.family) addFamily(h.id, `[등유 안심] 오늘 부모님 댁 등유 ${liters}L 주문, 1~3일 안에 배달 예정입니다. (${dealer})`, id);
-      ai(`${liters}리터 주문 넣었습니다. 상회에서 확인 전화를 드릴 거예요. 값은 배달 오면 그때 카드나 국민행복카드로 내시면 됩니다. 저는 돈이나 카드 번호를 절대 묻지 않아요.`);
+      ai(`${liters}리터 주문 ${night ? "받았습니다. 지금은 판매소가 문을 닫은 시간이라 " : "넣었습니다. "}${confirmCall}. ${pay}`);
     }
-    sys(needFamily ? "주문 → 가족 승인 대기 (카카오톡)" : "주문 → 판매소 화면으로 전달");
+    sys(needFamily ? "주문 → 가족 승인 대기 (카카오톡)" : night ? "주문 → 판매소 화면으로 전달 (실제로는 내일 아침에 들어감)" : "주문 → 판매소 화면으로 전달");
     setStage("done");
   }
 
@@ -296,9 +371,12 @@ function CallSim({ v: live, today }: { v: View; today: string }) {
       return resume(g, newK, lead);
   }
 
+  // 통화 중에 눈금 답으로 잔량이 고쳐졌으면, 소진일도 그 잔량으로 다시 계산해서 말한다
+  const pNow = level === Math.max(0, v.proj.levelToday) ? v.proj : project(v.params, v.days, v.todayIdx, level, v.todayIdx);
+
   // AI가 말할 수 있는 숫자 목록 (LLM 답변 검증에도 씀)
   function facts() {
-    const p = v.proj;
+    const p = pNow;
     const o = v.orderId ? s.orders.find((x) => x.id === v.orderId) : undefined;
     return {
       서비스: "울주군 등유 안심(시연용). 등록한 집의 보일러 기름이 떨어지기 전에 AI가 먼저 연락함",
@@ -319,6 +397,7 @@ function CallSim({ v: live, today }: { v: View; today: string }) {
         : {}),
       바우처: "등유를 쓰는 바우처 가구는 등유 추가지원이 있음. 대상인지와 잔액은 AI가 알지 못하고 주민센터나 생활지원사가 확인함",
       ...(phone ? { "전화가 의심될 때": "끊고, 저장해 둔 등유 안심 번호로 다시 걸면 됨. 거는 번호와 받는 번호가 같음" } : {}),
+      ...(night ? { "주문이 들어가는 때": "지금은 판매소가 문을 닫은 시간이라 내일 아침에 들어감" } : {}),
       ...(o ? { "주문 상태": o.status } : {}),
     };
   }
@@ -328,6 +407,11 @@ function CallSim({ v: live, today }: { v: View; today: string }) {
     who: `울주군 등유 안심이에요. 기름이 떨어지기 전에 먼저 연락드리는 AI예요.${phone ? " 미심쩍으시면 끊고, 저장해 두신 등유 안심 번호로 다시 거셔도 돼요." : ""}`,
     pay: "값은 배달 올 때 카드나 국민행복카드로 직접 내시면 돼요. 저는 돈이나 카드 번호를 묻지 않아요.",
     delivery: "주문하시면 판매소에서 확인 전화를 드리고, 보통 1~3일 안에 갖다 드려요.",
+    level:
+      pNow.emptyDate && pNow.emptyDate <= today
+        ? "제 계산으로는 기름이 거의 다 떨어졌을 것 같아요."
+        : `제 계산으로는 지금 ${Math.round(Math.max(0, level))}리터쯤 남았어요.${pNow.emptyDate ? ` ${fmtDate(pNow.emptyDate)}쯤 떨어질 것 같아요.` : " 당분간은 넉넉해요."}`,
+    price: `늘 시키시던 ${dealer} 오늘 가격은 리터에 ${v.price.toLocaleString()}원이에요. ${liters}리터면 ${fmtWon(liters * v.price)}이에요.`,
     cheaper: cheap
       ? `${h.emd} 주유소 중 가장 싼 곳은 리터에 ${cheap.kerosene.toLocaleString()}원이에요. 주유소 가격이라 배달이 되는지는 따로 확인해야 해요.`
       : null,
@@ -352,6 +436,11 @@ function CallSim({ v: live, today }: { v: View; today: string }) {
             : "낱말 규칙이 읽음";
     setMsgs((m) => m.map((x, i) => (i === m.length - 1 && x.who === "me" ? { ...x, via } : x)));
     const it = u.intent;
+    // 급한 말과 사람을 찾는 말은 어느 단계에서든 주문 대화를 멈춘다
+    if (it.t === "emergency") return emergency();
+    if (it.t === "boiler") return boilerHelp();
+    if (it.t === "human") return toHuman();
+    if (it.t === "distrust") return distrust();
     // Gemini가 답하지 못했어도, 자주 나오는 질문에는 사실 목록의 값으로 바로 답한다
     const topic = u.source === "rule" && !u.direct ? faqTopic(text) : null;
     const canned = topic && FAQ[topic];
@@ -362,6 +451,42 @@ function CallSim({ v: live, today }: { v: View; today: string }) {
     leadRef.current = u.say ?? null;
 
     const est = Math.max(0, v.proj.levelToday);
+
+    // 양을 말하면 그 양으로 다시 확인받는다. 탱크에 들어갈 자리보다 많이는 받지 않는다
+    const confirmAmount = (want: number) => {
+      const fit = Math.max(20, Math.floor((h.tank - level) / 10) * 10);
+      const L = Math.min(want, fit);
+      setLiters(L);
+      ai(`${L < want ? `탱크에 들어갈 자리가 ${fit}리터쯤이에요. ` : ""}${L}리터면 ${fmtWon(L * v.price)}이에요. ${dealer}에 ${L}리터 주문 넣을까요? 맞으시면 '네'라고 해 주세요.`);
+      setStage("confirm");
+    };
+
+    // 어르신이 먼저 건 전화: 무엇을 도울지 여쭌 뒤
+    if (stage === "ask") {
+      // 취소는 AI가 바로 하지 못한다. '아니'로 읽고 통화를 끝내면 취소된 줄 아실 수 있어 따로 안내한다
+      if (/취소/.test(text)) {
+        ai(`${v.orderId ? "주문 취소는 제가 바로 해 드리지 못해요. 상회에서 확인 전화를 드릴 때 말씀하시면 돼요." : "지금 들어가 있는 주문은 없어요."} ${REASK.ask}`);
+        return;
+      }
+      if (it.t === "money") return moneyFlow();
+      if (it.t === "elsewhere") return it.liters ? bought(it.liters) : askBought();
+      if (it.t === "gauge") return gaugeStep(it);
+      if (it.t === "order" || it.t === "amount") {
+        // 이미 넣은 주문이 있으면 또 받지 않는다
+        const open = s.orders.find((x) => x.id === v.orderId);
+        if (open) {
+          ai(`이미 주문하신 ${open.liters}리터가 ${dealer}에서 처리 중이에요. 또 주문하지 않으셔도 돼요. ${REASK.ask}`);
+          return;
+        }
+        return it.t === "amount" ? confirmAmount(it.liters) : offer(suggestLiters(h.tank, est), est);
+      }
+      if (it.t === "no") {
+        ai(`네, 필요하시면 언제든 ${phone ? "이 번호로 전화 주세요" : "말씀해 주세요"}. 따뜻하게 지내세요.`);
+        setStage("done");
+        return;
+      }
+      return miss1("무엇을 도와드릴까요? '기름 시켜 줘', '얼마나 남았어'처럼 말씀해 주세요.");
+    }
 
     if (stage === "since") {
       if (it.t === "money") return moneyFlow();
@@ -393,15 +518,6 @@ function CallSim({ v: live, today }: { v: View; today: string }) {
 
     if (stage === "gauge") return gaugeStep(it);
 
-    // 양을 바꾸는 말은 제안 단계든 확인 단계든 바뀐 양으로 다시 확인받는다. 탱크에 들어갈 자리보다 많이는 받지 않는다
-    const confirmAmount = (want: number) => {
-      const fit = Math.max(20, Math.floor((h.tank - level) / 10) * 10);
-      const L = Math.min(want, fit);
-      setLiters(L);
-      ai(`${L < want ? `탱크에 들어갈 자리가 ${fit}리터쯤이에요. ` : ""}${L}리터면 ${fmtWon(L * v.price)}이에요. ${dealer}에 ${L}리터 주문 넣을까요? 맞으시면 '네'라고 해 주세요.`);
-      setStage("confirm");
-    };
-
     if (stage === "offer") {
       if (it.t === "money") return moneyFlow();
       if (it.t === "amount") return confirmAmount(it.liters);
@@ -411,7 +527,8 @@ function CallSim({ v: live, today }: { v: View; today: string }) {
         return;
       }
       if (it.t === "no") {
-        ai("알겠습니다. 주문하지 않을게요. 필요하시면 언제든 이 번호로 말씀해 주세요. 내일 다시 여쭤볼게요.");
+        // 어르신이 먼저 건 전화에서는 "내일 다시 여쭤볼게요"라고 하지 않는다(먼저 전화할 때가 아닐 수 있다)
+        ai(`알겠습니다. 주문하지 않을게요. 필요하시면 언제든 이 번호로 말씀해 주세요.${inbound ? "" : " 내일 다시 여쭤볼게요."}`);
         addLog(h.id, "안내만", "가격 안내 후 주문 안 함");
         setStage("done");
         return;
@@ -523,6 +640,9 @@ function CallSim({ v: live, today }: { v: View; today: string }) {
                   <button className="btn btn-primary" onClick={start}>
                     {h.channel === "AI 스피커" ? "AI 스피커 안내 시작" : "전화 걸기"}
                   </button>
+                  <button className="btn" onClick={startInbound}>
+                    {phone ? "어르신이 먼저 겁니다" : "어르신이 먼저 말을 겁니다"}
+                  </button>
                   <button className="btn" onClick={noAnswer}>
                     전화를 안 받으면?
                   </button>
@@ -580,15 +700,15 @@ function CallSim({ v: live, today }: { v: View; today: string }) {
                   </button>
                 </div>
                 <form
-                  className="mt-2 flex gap-2"
+                  className="mt-2 flex flex-wrap gap-2"
                   onSubmit={(e) => {
                     e.preventDefault();
                     reply(input);
                   }}
                 >
                   <input
-                    className="inp flex-1"
-                    placeholder="어르신 대답을 직접 입력해 보세요"
+                    className="inp min-w-0 flex-1 basis-full sm:basis-0"
+                    placeholder="어르신 말을 직접 입력해 보세요"
                     value={input}
                     onChange={(e) => setInput(e.target.value)}
                   />
