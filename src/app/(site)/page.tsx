@@ -1,4 +1,5 @@
 import Link from "next/link";
+import Evidence from "@/components/Evidence";
 import ScreenTour from "@/components/ScreenTour";
 import { APP_HOME, APP_NAME } from "@/lib/routes";
 
@@ -72,6 +73,8 @@ export default function Home() {
         </div>
       </section>
 
+      <Evidence />
+
       <ScreenTour />
 
       <section id="data" className="wrap py-20 md:py-32">
@@ -92,7 +95,13 @@ export default function Home() {
               <li className="border-b border-line py-3">A·B·C 가구와 현황판의 등록 가구</li>
               <li className="border-b border-line py-3">○○상회 같은 판매소 이름과 배달 가격, 바우처 잔액</li>
               <li className="border-b border-line py-3">AI 전화는 화면 안 시연 (실제 전화망 연결 없음)</li>
-              <li className="border-b border-line py-3">가구 단위 예측은 아직 실측 검증 전 (01 모델검증 문서)</li>
+              <li className="border-b border-line py-3">
+                가구 단위 예측은 아직 실측 검증 전 (
+                <a href="#evidence" className="underline underline-offset-4">
+                  검증 결과
+                </a>
+                )
+              </li>
             </ul>
           </div>
         </div>
