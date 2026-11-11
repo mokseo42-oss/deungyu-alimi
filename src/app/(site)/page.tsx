@@ -79,6 +79,10 @@ export default function Home() {
 
       <section id="data" className="wrap py-20 md:py-32">
         <h2 className="text-[22px] md:text-[24px]">이 데모에서 실제인 것과 가상인 것</h2>
+        <p className="mt-6 max-w-4xl text-[17px] leading-relaxed md:text-[18px]">
+          울주군이나 한국석유공사가 운영하는 공식 서비스가 아닙니다. 한국석유공사 AI·데이터 서포터즈 팀 유일무이가 제안한 아이디어를
+          보여 주려고 만든 시연용입니다.
+        </p>
         <div className="mt-10 grid gap-12 md:grid-cols-2 md:gap-16">
           <div className="border-t border-ink pt-5">
             <h3 className="text-[20px] font-medium">실제 자료</h3>
