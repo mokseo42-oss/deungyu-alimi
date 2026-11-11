@@ -3,7 +3,7 @@ import { useState } from "react";
 import { View } from "@/lib/useModel";
 import { fmtDate, fmtL } from "@/lib/model";
 
-// 잔량 그래프: 실선=지난 기온으로 계산, 굵은 주황=예보, 점선=평년값. 회색 점선=알림 기준(7일 쓸 양+여유분)
+// 잔량 그래프: 실선=지난 기온으로 계산, 굵은 주황=예보, 점선=예년 평균(최근 세 겨울). 회색 점선=알림 기준(7일 쓸 양+여유분)
 export default function LevelChart({ v, horizon = 30 }: { v: View; horizon?: number }) {
   const [hover, setHover] = useState<number | null>(null);
   const pts = v.proj.points;
@@ -90,7 +90,7 @@ export default function LevelChart({ v, horizon = 30 }: { v: View; horizon?: num
             잔량 {fmtL(lv(h))} · 하루 {h.use.toFixed(1)}L
           </div>
           <div className="num text-muted">
-            알림 기준 {fmtL(h.threshold)} {h.cold ? "(한파)" : ""} · {h.src === "obs" ? "지난 기온" : h.src === "fcst" ? "예보" : "평년값"}
+            알림 기준 {fmtL(h.threshold)} {h.cold ? "(한파)" : ""} · {h.src === "obs" ? "지난 기온" : h.src === "fcst" ? "예보" : "예년 평균"}
           </div>
         </div>
       )}
@@ -105,7 +105,7 @@ export default function LevelChart({ v, horizon = 30 }: { v: View; horizon?: num
         </li>
         <li className="flex items-center gap-2">
           <span aria-hidden="true" className="w-5 border-t-2 border-dotted border-fuel" />
-          평년값
+          예년 평균
         </li>
         <li className="flex items-center gap-2">
           <span aria-hidden="true" className="w-5 border-t-2 border-dashed border-[#9a9a9a]" />

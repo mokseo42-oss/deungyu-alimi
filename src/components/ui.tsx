@@ -52,8 +52,8 @@ export function WeatherNote({ fallback, source }: { fallback: boolean; source: s
   return (
     <p className={`mt-3 text-sm ${fallback ? "text-empty" : "text-muted"}`}>
       {fallback
-        ? "기온 API에 닿지 못해 월별 평년값으로 계산했습니다. 날짜별 값은 실제와 다릅니다."
-        : `기온: ${source} (지난 92일 + 앞으로 16일, 그 뒤는 울주 평년 난방도일)`}
+        ? "기온 API에 닿지 못해 월별 예년 평균(최근 세 겨울)으로 계산했습니다. 날짜별 값은 실제와 다릅니다."
+        : `기온: ${source} (지난 92일 + 앞으로 16일, 그 뒤는 울주 예년 평균 난방도일. 예년 평균은 최근 세 겨울 평균)`}
     </p>
   );
 }

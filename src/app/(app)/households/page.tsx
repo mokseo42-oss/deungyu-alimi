@@ -114,7 +114,7 @@ function HouseCard({ v, today }: { v: View; today: string }) {
               v={
                 <>
                   {v.params.k.toFixed(2)} L/난방도일
-                  {lowK && <span className="ml-1 text-check">(지역 중앙값 절반 미만)</span>}
+                  {lowK && <span className="ml-1 text-check">(가정한 지역 중앙값의 절반 미만)</span>}
                 </>
               }
             />
@@ -172,8 +172,8 @@ function RegisterCalc() {
         </div>
       </div>
       <p className="mt-8 max-w-4xl text-sm text-muted">
-        계산: (지난겨울 총량 {total.toLocaleString()}L − 기본 {base}L × 151일) ÷ 울주 평년 겨울 난방도일 {winterHdd.toLocaleString()}. 지역
-        중앙값은 {REGION_MEDIAN_K}입니다. 이 값이 절반({REGION_MEDIAN_K / 2}) 밑이면 &quot;원래 적게 쓰는 집&quot;이 아니라 참는 집일 수 있어 살펴보기 대상에 넣습니다.
+        계산: (지난겨울 총량 {total.toLocaleString()}L − 기본 {base}L × 151일) ÷ 울주 예년 평균(최근 세 겨울) 겨울 난방도일 {winterHdd.toLocaleString()}. 지역
+        중앙값은 아직 재지 못해 {REGION_MEDIAN_K}로 가정했습니다(모의실험에 쓴 범위의 가운데). 집 계수가 그 절반({REGION_MEDIAN_K / 2}) 밑이면 &quot;원래 적게 쓰는 집&quot;이 아니라 참는 집일 수 있어 살펴보기 대상에 넣습니다.
       </p>
       <button
         className="mt-5 text-sm text-muted underline underline-offset-4 hover:text-ink"

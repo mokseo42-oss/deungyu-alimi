@@ -1,5 +1,5 @@
 // 울주군 12개 읍면의 지난 92일 + 앞으로 16일 일평균·최저기온 (Open-Meteo, 키 없음)
-// 실패하면 월별 평년값으로 대체하고 fallback=true를 돌려준다.
+// 실패하면 월별 예년 평균(최근 세 겨울)으로 대체하고 fallback=true를 돌려준다.
 import { NextResponse, connection } from "next/server";
 import { EMDS } from "@/data/ulju";
 import { Day, extendWithClimate, todayKST, addDays } from "@/lib/model";
@@ -49,6 +49,6 @@ export async function GET() {
     const seed: Day[] = [{ date: start, tmean: 10, tmin: 4, src: "clim" }];
     const days = extendWithClimate(seed, addDays(today, 15));
     const byEmd = Object.fromEntries(EMDS.map((x) => [x.name, days]));
-    return NextResponse.json({ today, fallback: true, error: String(e), source: "평년값 대체", byEmd });
+    return NextResponse.json({ today, fallback: true, error: String(e), source: "예년 평균 대체", byEmd });
   }
 }

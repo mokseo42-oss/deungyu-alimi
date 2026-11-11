@@ -83,7 +83,7 @@ export default function Home() {
               <li className="border-b border-line py-3">울주군 12개 읍면 기온과 16일 예보 (Open-Meteo)</li>
               <li className="border-b border-line py-3">울주군 주유소 등유 가격 (오피넷 실시간 최저가 20곳 + 2026-09-19 저장 자료 39곳)</li>
               <li className="border-b border-line py-3">읍면별 65·75·80세 이상 인구 (공공데이터포털, 2025-08-20)</li>
-              <li className="border-b border-line py-3">울주 평년 월별 난방도일 (2023~26 ERA5 계산)</li>
+              <li className="border-b border-line py-3">울주 월별 난방도일 평균 (2023~26 세 겨울, ERA5 계산)</li>
             </ul>
           </div>
           <div className="border-t border-ink pt-5">
