@@ -102,6 +102,7 @@ function CallSim({ v: live, today }: { v: View; today: string }) {
   const rel = h.family?.split(" ")[0];
   const who = rel ? (HONOR[rel] ?? `${rel}님`) : "생활지원사 선생님";
   const dealer = h.dealer.replace(" (가상)", ""); // 말과 가족 알림에는 '(가상)' 표시를 뺀다
+  const phone = h.channel === "AI 전화"; // 전화는 끊고 같은 번호로 다시 걸 수 있다(AI 스피커는 번호가 없다)
 
   useEffect(() => {
     if (stage === "idle") setSnap(live);
@@ -183,10 +184,9 @@ function CallSim({ v: live, today }: { v: View; today: string }) {
     ai(sorry ? `죄송해요, 제가 잘 못 알아들었어요. ${prompt}` : prompt);
   }
 
+  // 바우처 잔액은 말하지 않는다. 기관과 연계하기 전에는 AI가 알 수 없는 값이라 제도만 안내한다
   function moneyFlow() {
-    ai(
-      `기름값이 부담되시지요. 등유를 쓰시는 바우처 가구는 등유 추가지원이 있어요. 지금 바우처 잔액은 ${fmtWon(h.voucherLeft)}으로 보여요. 생활지원사 선생님께 연결해 드릴까요? 원하지 않으시면 연결하지 않아요.`,
-    );
+    ai("기름값이 부담되시지요. 등유를 쓰시는 바우처 가구는 등유 추가지원이 있어요. 생활지원사 선생님께 연결해 드릴까요? 원하지 않으시면 연결하지 않아요.");
     setStage("money");
   }
 
@@ -317,14 +317,15 @@ function CallSim({ v: live, today }: { v: View; today: string }) {
       ...(cheap
         ? { [`${h.emd} 주유소 중 가장 싼 등유`]: `리터에 ${cheap.kerosene.toLocaleString()}원 (오피넷 ${asOf} 기준. 주유소 가격이라 배달이 되는지는 따로 확인해야 함)` }
         : {}),
-      "바우처 잔액": fmtWon(h.voucherLeft),
+      바우처: "등유를 쓰는 바우처 가구는 등유 추가지원이 있음. 대상인지와 잔액은 AI가 알지 못하고 주민센터나 생활지원사가 확인함",
+      ...(phone ? { "전화가 의심될 때": "끊고, 저장해 둔 등유 안심 번호로 다시 걸면 됨. 거는 번호와 받는 번호가 같음" } : {}),
       ...(o ? { "주문 상태": o.status } : {}),
     };
   }
 
   // 자주 나오는 질문의 답. 내용은 facts()와 같아야 한다
   const FAQ: Record<string, string | null> = {
-    who: "울주군 등유 안심이에요. 기름이 떨어지기 전에 먼저 연락드리는 AI예요.",
+    who: `울주군 등유 안심이에요. 기름이 떨어지기 전에 먼저 연락드리는 AI예요.${phone ? " 미심쩍으시면 끊고, 저장해 두신 등유 안심 번호로 다시 거셔도 돼요." : ""}`,
     pay: "값은 배달 올 때 카드나 국민행복카드로 직접 내시면 돼요. 저는 돈이나 카드 번호를 묻지 않아요.",
     delivery: "주문하시면 판매소에서 확인 전화를 드리고, 보통 1~3일 안에 갖다 드려요.",
     cheaper: cheap
@@ -487,7 +488,7 @@ function CallSim({ v: live, today }: { v: View; today: string }) {
   return (
     <div className="grid gap-5 lg:grid-cols-[minmax(0,1fr)_340px]">
       {/* 통화 화면 */}
-      <section className="card flex min-h-[520px] flex-col overflow-hidden">
+      <section className="card flex max-h-[max(520px,calc(100dvh-var(--nav-h)-3rem))] min-h-[520px] flex-col overflow-hidden">
         <div className="flex flex-wrap items-center justify-between gap-2 border-b border-line px-5 py-3">
           <div>
             <div className="flex flex-wrap items-center gap-x-3 text-[17px] font-semibold">
@@ -513,7 +514,7 @@ function CallSim({ v: live, today }: { v: View; today: string }) {
             </label>
           </div>
         </div>
-        <div className="flex-1 space-y-3 overflow-y-auto px-5 py-4">
+        <div className="min-h-0 flex-1 space-y-3 overflow-y-auto px-5 py-4">
           {stage === "idle" && (
             <div className="grid h-full place-items-center py-10 text-center">
               <div>
@@ -598,6 +599,10 @@ function CallSim({ v: live, today }: { v: View; today: string }) {
                     보내기
                   </button>
                 </form>
+                <p className="mt-2 text-[11px] leading-relaxed text-muted">
+                  입력한 말은 뜻을 읽으려고 서버로 보내고, 낱말 규칙이 읽지 못한 말은 Google Gemini로도 보냅니다. &apos;말하기&apos;는 브라우저의 음성
+                  인식을 거칩니다. 실제 이름·전화번호·주소는 넣지 마세요.
+                </p>
               </>
             )}
           </div>
@@ -620,7 +625,6 @@ function CallSim({ v: live, today }: { v: View; today: string }) {
               v={cheap ? `${cheap.kerosene.toLocaleString()}원/L` : "없음"}
             />
             <Pair k="제안 주문량" v={fmtL(liters)} />
-            <Pair k="바우처 잔액(가상)" v={fmtWon(h.voucherLeft)} />
           </dl>
         </section>
 
