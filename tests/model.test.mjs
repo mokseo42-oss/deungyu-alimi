@@ -5,7 +5,7 @@ import assert from "node:assert/strict";
 import { register } from "node:module";
 
 register("./alias-hooks.mjs", import.meta.url); // model.ts 안의 "@/data/…" 경로를 풀어 준다
-const { project } = await import("../src/lib/model.ts");
+const { project, learnK } = await import("../src/lib/model.ts");
 
 // 날마다 같은 기온인 가짜 날씨. 평균 18℃면 난방도일 0, 4℃면 14
 const day = (i) => new Date(Date.UTC(2026, 0, 1 + i)).toISOString().slice(0, 10);
@@ -39,4 +39,17 @@ test("계산한 기간 안에 떨어지지 않으면 잔량이 기준 아래여�
   const p = project({ tank: 200, k: 0.5, base: 1 }, days(30, 18), 0, 55, 0);
   assert.equal(p.emptyDate, null);
   assert.equal(p.alertDate, null);
+});
+
+// 눈금 답이 계산을 시작한 양보다 많으면(쓴 양이 0 이하) 그사이 다른 데서 넣은 것이다.
+// 전에는 이때 집 계수를 최솟값 0.05 쪽으로 끌어내려, 다음 전화가 뒤로 밀렸다
+test("쓴 양이 0 이하로 나오면 집 계수를 고치지 않는다", () => {
+  const p = { tank: 200, k: 0.5, base: 1 };
+  assert.equal(learnK(p, days(30, 4), 0, 20, -30, 0.3), 0.5);
+  assert.equal(learnK(p, days(30, 4), 0, 20, 0, 0.3), 0.5);
+});
+
+test("쓴 양이 있으면 집 계수를 그만큼 고친다", () => {
+  // 20일 동안 난방도일 280. 300L를 썼으면 관측 계수 (300 − 20) ÷ 280 = 1.0, 절반 반영하면 0.75
+  assert.equal(learnK({ tank: 200, k: 0.5, base: 1 }, days(30, 4), 0, 20, 300, 0.5), 0.75);
 });

@@ -8,7 +8,7 @@ export type Day = {
   date: string; // YYYY-MM-DD
   tmean: number;
   tmin: number;
-  src: "obs" | "fcst" | "clim"; // 관측(재분석), 예보, 평년 대체
+  src: "obs" | "fcst" | "clim"; // 관측(재분석), 예보, 예년 평균(최근 세 겨울) 대체
 };
 
 export type HouseParams = {
@@ -48,7 +48,7 @@ export function daysInMonth(date: string) {
   return new Date(Date.UTC(y, m, 0)).getUTCDate();
 }
 
-// 예보(최대 16일)가 끝난 뒤는 월별 평년 난방도일로 채움
+// 예보(최대 16일)가 끝난 뒤는 월별 예년 평균 난방도일로 채움
 export function extendWithClimate(days: Day[], untilDate: string): Day[] {
   const out = days.slice();
   let last = out[out.length - 1]?.date;
@@ -189,6 +189,7 @@ export function learnK(p: HouseParams, days: Day[], fromIdx: number, toIdx: numb
     n++;
   }
   if (h < 20) return p.k; // 너무 따뜻했던 기간이면 고치지 않음
+  if (consumed <= 0) return p.k; // 눈금이 시작한 양보다 많다 = 그사이 다른 데서 넣었다. 쓴 양을 알 수 없으니 고치지 않음
   const kObs = Math.max(0.05, (consumed - p.base * n) / h);
   return Math.round((p.k * (1 - weight) + kObs * weight) * 1000) / 1000;
 }
