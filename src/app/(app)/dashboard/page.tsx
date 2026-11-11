@@ -6,9 +6,13 @@ import { useRegistry, View } from "@/lib/useModel";
 import { EMDS, ELDERLY_SHARE_NOTE } from "@/data/ulju";
 import { addDays, daysBetween, fmtDate, fmtL, fmtWon, isColdWave } from "@/lib/model";
 import { ULJU_STATION_TOTAL, byEmd, cheapestIn, useStations } from "@/lib/stations";
-import { update } from "@/lib/store";
+import { State, update } from "@/lib/store";
 
 type Tab = "welfare" | "energy";
+
+// '살펴봐 주세요'에 보일 집. 생활지원사가 '해결'로 닫은 집은 목록과 숫자에서 뺀다
+const needsLook = (v: View, checks: State["checks"]) =>
+  (v.status === "check" || !!checks[v.h.id]) && checks[v.h.id] !== "해결";
 
 export default function Dashboard() {
   const { weather, error, views, synth, store } = useRegistry();
@@ -36,7 +40,7 @@ export default function Dashboard() {
         list,
         callWeek: list.filter((v) => v.status === "call" || (v.status === "ok" && v.proj.alertDate && v.proj.alertDate <= week)).length,
         empty: list.filter((v) => v.status === "empty").length,
-        check: list.filter((v) => v.status === "check" || store.checks[v.h.id]).length,
+        check: list.filter((v) => needsLook(v, store.checks)).length,
         stations: here.length,
         minPrice: low ? low.kerosene : null,
         winterL: list.reduce((a, v) => a + (v.shortfall?.liters ?? 0), 0),
@@ -60,7 +64,7 @@ export default function Dashboard() {
     );
 
   const lookList = all
-    .filter((v) => v.status === "check" || store.checks[v.h.id])
+    .filter((v) => needsLook(v, store.checks))
     .sort((a, b) => (a.h.id.length - b.h.id.length) || (a.proj.emptyDate ?? "").localeCompare(b.proj.emptyDate ?? ""));
   const noAnswer = store.logs.filter((l) => l.kind === "안부 확인 필요" || l.kind === "확인 필요");
   const shortTop = all
