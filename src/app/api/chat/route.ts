@@ -3,7 +3,7 @@
 // - LLM 문장에 사실 목록에 없는 숫자가 들어 있으면 그 문장을 버린다(숫자 지어내기 방지).
 // - 키가 없거나 실패하면 규칙 분류로 대체한다.
 import { NextRequest, NextResponse } from "next/server";
-import { ALLOWED, Facts, Intent, Understood, classify } from "@/lib/dialog";
+import { ALLOWED, Facts, Intent, Understood, classify, numbersOk, safeIntent } from "@/lib/dialog";
 import { GEMINI_MODEL, geminiJSON, hasGemini } from "@/lib/gemini";
 
 export const dynamic = "force-dynamic";
@@ -36,7 +36,7 @@ const INTENT_DESC = `의도 설명:
 - plenty: 눈금은 말하지 않고 "많다/넉넉하다"고만 함.
 - yes: 동의·승낙(응, 그래, 시켜 줘, 연결해 줘 등).
 - no: 거절·보류(아니, 됐어, 나중에).
-- amount: 주문은 원하지만 양을 바꿈. order_liters에 리터를 넣는다. "반만"=100, "한 드럼"=200.
+- amount: 주문은 원하지만 양을 바꿈. order_liters에 리터를 넣는다. "반만"·"반 드럼"=100, "한 드럼"=200, "한 말"=20.
 - money: 기름값·돈 부담, 아껴 쓴다, 형편이 어렵다는 말. 다른 의도보다 우선한다.
 - elsewhere: 다른 곳에서 이미 기름을 샀다/넣었다.
 - away: 집을 비웠다(병원, 자녀 집 등).
@@ -80,13 +80,6 @@ type Out = {
   say?: string;
   answer?: string | null;
 };
-
-// 문장 속 숫자가 모두 사실 목록에 있는지
-function numbersOk(text: string, facts: Facts) {
-  const blob = Object.values(facts).join(" ").replace(/,/g, "");
-  const nums = text.replace(/,/g, "").match(/\d+(\.\d+)?/g) ?? [];
-  return nums.every((n) => blob.includes(n));
-}
 
 function toIntent(o: Out, tank: number): Intent {
   switch (o.intent) {
@@ -144,7 +137,7 @@ ${history.join("\n") || "(없음)"}
   try {
     const o = await geminiJSON<Out>(SYSTEM, user, SCHEMA);
     if (!allowed.includes(o.intent)) o.intent = "unknown";
-    const intent = toIntent(o, tank);
+    const intent = safeIntent(toIntent(o, tank), text, stage);
     let say = (o.say ?? "").trim().slice(0, 60);
     if (/\d/.test(say) || intent.t === "unknown" || intent.t === "question") say = "";
     let answer = (o.answer ?? "").trim().slice(0, 200);
