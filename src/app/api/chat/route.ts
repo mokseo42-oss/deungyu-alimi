@@ -1,9 +1,10 @@
-// AI 전화 "듣기": 어르신 말을 Gemini가 이해해 의도(JSON)로 돌려준다.
+// AI 전화 "듣기": 어르신 말의 의도(JSON)를 돌려준다.
+// - "네", "반 드럼만"처럼 분명한 말은 낱말 규칙이 바로 읽는다. 모르는 말, 질문, 긴 말만 Gemini에 보낸다.
 // - 주문·연결 같은 행동은 화면 쪽 단계 규칙이 정한다. LLM은 의도와 짧은 말만 만든다.
 // - LLM 문장에 사실 목록에 없는 숫자가 들어 있으면 그 문장을 버린다(숫자 지어내기 방지).
-// - 키가 없거나 실패하면 규칙 분류로 대체한다.
+// - 키가 없거나 Gemini가 실패하면 낱말 규칙의 답을 쓴다.
 import { NextRequest, NextResponse } from "next/server";
-import { ALLOWED, Facts, Intent, Understood, classify, numbersOk, safeIntent } from "@/lib/dialog";
+import { ALLOWED, Facts, Intent, Understood, classify, isQuestion, numbersOk, ruleIsEnough, safeIntent } from "@/lib/dialog";
 import { GEMINI_MODEL, geminiJSON, hasGemini } from "@/lib/gemini";
 
 export const dynamic = "force-dynamic";
@@ -23,7 +24,11 @@ function limited(ip: string) {
   return list.length > 30;
 }
 
+const DONT_KNOW = "그건 제가 정확히 알지 못해요. 판매소에서 확인 전화드릴 때 여쭤봐 주세요.";
+
 const STAGE_DESC: Record<string, string> = {
+  since: "AI가 기름이 곧 떨어질 것 같다고 알리고 '지난번 배달 뒤에 다른 데서 기름 넣으신 적 있으세요?'라고 물었다.",
+  bought: "어르신이 다른 데서 기름을 넣었다고 해서 AI가 '얼마나 넣으셨어요?'라고 물었다.",
   gauge: "AI가 보일러 기름탱크 눈금이 지금 어디쯤인지 물었다.",
   offer: "AI가 단골 판매소 가격과 제안 주문량을 말하고 '주문해 드릴까요?'라고 물었다.",
   confirm: "AI가 주문 내용(양, 금액, 판매소)을 다시 말하고 최종 확인을 물었다.",
@@ -35,10 +40,11 @@ const INTENT_DESC = `의도 설명:
 - gauge: 탱크 눈금을 말함. gauge_fraction에 탱크 대비 비율(0~1)을 넣는다. 눈금은 네 칸: 한 칸=0.25, 반/두 칸=0.5, 세 칸=0.75, 가득=0.95, 바닥/거의 없음=0.05. 리터로 말하면 gauge_liters에 넣는다. gauge_label에 어르신 표현을 짧게 요약(예: "네 칸 중 한 칸").
 - plenty: 눈금은 말하지 않고 "많다/넉넉하다"고만 함.
 - yes: 동의·승낙(응, 그래, 시켜 줘, 연결해 줘 등).
-- no: 거절·보류(아니, 됐어, 나중에).
+- no: 거절·보류(아니, 됐어, 나중에). since 단계에서는 다른 데서 넣은 적이 없다는 말.
 - amount: 주문은 원하지만 양을 바꿈. order_liters에 리터를 넣는다. "반만"·"반 드럼"=100, "한 드럼"=200, "한 말"=20.
 - money: 기름값·돈 부담, 아껴 쓴다, 형편이 어렵다는 말. 다른 의도보다 우선한다.
-- elsewhere: 다른 곳에서 이미 기름을 샀다/넣었다.
+- elsewhere: 다른 곳에서 이미 기름을 샀다/넣었다. 넣은 양을 말했으면 order_liters에 리터를 넣는다.
+- unsure: 모르겠다, 기억이 안 난다, 탱크가 밖에 있어 눈금을 못 본다.
 - away: 집을 비웠다(병원, 자녀 집 등).
 - fine: 보일러를 잘 돌리고 있다, 따뜻하다.
 - question: 배달 날짜, 가격, 남은 기름, 결제 방법 등 서비스에 대해 질문함. answer에 사실 목록만 근거로 답을 쓴다. 사실 목록에 없으면 "그건 제가 정확히 몰라서 판매소에서 확인 전화드릴 때 여쭤봐 주세요" 같은 식으로 답한다.
@@ -59,7 +65,7 @@ const SCHEMA = {
   properties: {
     intent: {
       type: "STRING",
-      enum: ["gauge", "plenty", "yes", "no", "amount", "money", "elsewhere", "away", "fine", "question", "unknown"],
+      enum: ["gauge", "plenty", "yes", "no", "amount", "money", "elsewhere", "unsure", "away", "fine", "question", "unknown"],
     },
     gauge_fraction: { type: "NUMBER", nullable: true },
     gauge_liters: { type: "NUMBER", nullable: true },
@@ -94,6 +100,10 @@ function toIntent(o: Out, tank: number): Intent {
       if (L == null || !isFinite(L) || L <= 0) return { t: "yes" };
       return { t: "amount", liters: Math.max(20, Math.min(tank, Math.round(L / 10) * 10)) };
     }
+    case "elsewhere": {
+      const L = o.order_liters;
+      return L != null && isFinite(L) && L > 0 ? { t: "elsewhere", liters: Math.min(tank, Math.round(L / 10) * 10) } : { t: "elsewhere" };
+    }
     default:
       return { t: o.intent } as Intent;
   }
@@ -118,7 +128,13 @@ export async function POST(req: NextRequest) {
   const allowed = ALLOWED[stage];
   if (!allowed) return NextResponse.json({ error: "bad stage" }, { status: 400 });
 
-  const rule = (note: string): Understood => ({ intent: classify(text, tank, stage), source: "rule", note });
+  const ruleIntent = classify(text, tank, stage);
+  // 낱말 규칙의 답. 규칙이 못 읽은 질문에는 "못 알아들었어요" 대신 모른다고 답한다
+  const rule = (note: string, direct = false): Understood =>
+    ruleIntent.t === "unknown" && isQuestion(text)
+      ? { intent: { t: "question" }, answer: DONT_KNOW, source: "rule", note }
+      : { intent: ruleIntent, source: "rule", direct, note };
+  if (ruleIsEnough(text, ruleIntent)) return NextResponse.json(rule("분명한 말이라 낱말 규칙으로 바로 읽음", true));
   if (!hasGemini()) return NextResponse.json(rule("GEMINI_API_KEY 없음 → 규칙 분류"));
   const ip = req.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ?? "local";
   if (limited(ip)) return NextResponse.json(rule("요청이 많아 규칙 분류"));
@@ -141,9 +157,7 @@ ${history.join("\n") || "(없음)"}
     let say = (o.say ?? "").trim().slice(0, 60);
     if (/\d/.test(say) || intent.t === "unknown" || intent.t === "question") say = "";
     let answer = (o.answer ?? "").trim().slice(0, 200);
-    if (intent.t === "question" && (!answer || !numbersOk(answer, facts))) {
-      answer = "그건 제가 정확히 알지 못해요. 판매소에서 확인 전화드릴 때 여쭤봐 주세요.";
-    }
+    if (intent.t === "question" && (!answer || !numbersOk(answer, facts))) answer = DONT_KNOW;
     const out: Understood = { intent, say: say || undefined, answer: intent.t === "question" ? answer : undefined, source: "gemini" };
     return NextResponse.json(out);
   } catch (e) {

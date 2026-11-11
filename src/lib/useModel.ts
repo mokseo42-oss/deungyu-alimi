@@ -173,7 +173,9 @@ export function useRegistry() {
   return { weather, error, views, synth, store };
 }
 
+// 권하는 양: 기본은 반 드럼(100L). 탱크에 100L가 안 들어가면 들어가는 만큼만
+// (전에는 탱크를 채우는 양을 권해서, 한 칸 남은 집에 150L·약 23만 원을 불렀다)
 export function suggestLiters(tank: number, level: number) {
   const room = tank - Math.max(0, level);
-  return Math.min(tank, Math.max(100, Math.floor(room / 10) * 10));
+  return room >= 100 ? 100 : Math.max(20, Math.floor(room / 10) * 10);
 }

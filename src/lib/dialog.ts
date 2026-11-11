@@ -1,5 +1,6 @@
 // AI 전화 대화 (00 제안서 4장 "전화에서 나올 수 있는 답")
-// 듣기(어르신 말 이해)는 Gemini가 맡는다(/api/chat). 키가 없거나 실패하면 아래 규칙 분류로 돌아간다.
+// 듣기(어르신 말 이해): 분명한 말은 아래 낱말 규칙이 바로 읽고, 모르는 말·질문·긴 말만 Gemini에 보낸다(/api/chat).
+// Gemini 키가 없거나 실패하면 낱말 규칙의 답을 그대로 쓴다.
 // 숫자(잔량, 날짜, 가격)는 모델이 계산한 값만 쓰고, LLM이 만든 문장에 사실에 없는 숫자가 있으면 버린다.
 
 export type Intent =
@@ -9,17 +10,21 @@ export type Intent =
   | { t: "no" }
   | { t: "amount"; liters: number }
   | { t: "money" }
-  | { t: "elsewhere" }
+  | { t: "elsewhere"; liters?: number } // 다른 데서 넣음. 양을 같이 말했으면 liters
   | { t: "away" }
   | { t: "fine" }
+  | { t: "unsure" } // 모르겠다, 눈금을 못 본다
   | { t: "question" }
   | { t: "unknown" };
 
-export type Stage = "idle" | "gauge" | "offer" | "confirm" | "checkin" | "money" | "done";
+// since: 다른 데서 넣은 적이 있는지, bought: 얼마나 넣었는지
+export type Stage = "idle" | "since" | "bought" | "gauge" | "offer" | "confirm" | "checkin" | "money" | "done";
 
 // 단계마다 받을 수 있는 의도
 export const ALLOWED: Record<string, Intent["t"][]> = {
-  gauge: ["gauge", "plenty", "money", "question", "unknown"],
+  since: ["no", "yes", "elsewhere", "plenty", "gauge", "unsure", "money", "question", "unknown"],
+  bought: ["amount", "unsure", "question", "unknown"],
+  gauge: ["gauge", "plenty", "unsure", "money", "question", "unknown"],
   offer: ["yes", "no", "amount", "money", "question", "unknown"],
   confirm: ["yes", "no", "amount", "question", "unknown"],
   checkin: ["fine", "gauge", "elsewhere", "away", "money", "question", "unknown"],
@@ -28,6 +33,8 @@ export const ALLOWED: Record<string, Intent["t"][]> = {
 
 // 질문에 답한 뒤 다시 묻는 말
 export const REASK: Record<string, string> = {
+  since: "지난번 배달 뒤에 다른 데서 기름 넣으신 적 있으세요?",
+  bought: "얼마나 넣으셨어요?",
   gauge: "그럼 탱크 눈금은 네 칸 중 몇 칸쯤 남았나요?",
   offer: "주문해 드릴까요?",
   confirm: "이대로 주문을 넣을까요?",
@@ -40,6 +47,7 @@ export type Understood = {
   say?: string; // 어르신 말에 대한 짧은 공감 한마디(숫자 없음)
   answer?: string; // 어르신이 물어본 것에 대한 답(사실 목록의 숫자만)
   source: "gemini" | "rule";
+  direct?: boolean; // 분명한 말이라 Gemini에 묻지 않고 낱말 규칙이 바로 읽었다
   note?: string;
 };
 
@@ -92,16 +100,25 @@ export function classify(text: string, tank: number, stage = "gauge"): Intent {
   const s = text.trim();
   if (has(s, /돈|비싸|아껴|아끼|형편|부담|못 사|없어서/)) return { t: "money" };
   // 확인 단계에서 양을 바꾸는 말도 승낙이 아니다(화면이 바뀐 양으로 다시 묻는다)
-  if (stage === "offer" || stage === "confirm") {
+  if (stage === "offer" || stage === "confirm" || stage === "bought") {
     const liters = parseAmount(s, tank);
     if (liters) return { t: "amount", liters };
   }
-  // "반", "가득"은 눈금을 물었을 때만 눈금이다
-  if (stage === "gauge" || stage === "checkin") {
+  // "다른 데서 넣으신 적 있으세요?"의 답. "안 넣었어"에도 "넣었어"가 들어 있으니 없다는 말을 먼저 본다
+  if (stage === "since" && has(s, /없어|없다|없지|없심더|없는데|안 ?넣|안 ?샀/)) return { t: "no" };
+  // "다른 데는 얼마야?" 같은 질문은 다른 데서 샀다는 말이 아니다
+  if (!isQuestion(s) && has(s, /딴 ?데|다른 ?데|따로 ?샀|넣었어|넣었다|사 ?놨/)) {
+    const liters = parseAmount(s, tank);
+    return liters ? { t: "elsewhere", liters } : { t: "elsewhere" };
+  }
+  // "반", "가득"은 눈금을 물었거나 물을 수 있는 단계에서만 눈금이다
+  if (stage === "gauge" || stage === "checkin" || stage === "since") {
     const g = parseGauge(s, tank);
     if (g) return g;
   }
-  if (has(s, /딴 ?데|다른 ?데|따로 ?샀|넣었어|사 ?놨/)) return { t: "elsewhere" };
+  if ((stage === "since" || stage === "bought" || stage === "gauge") && has(s, /모르|못 ?봐|못 ?보|안 ?보여|밖에 ?있|기억 ?안/)) {
+    return { t: "unsure" };
+  }
   if (has(s, /집을 ?비|집에 ?없|병원|아들 ?집|딸 ?집|자녀/)) return { t: "away" };
   if (has(s, /많아|넉넉|아직 ?있|충분/)) return { t: "plenty" };
   if (has(s, /아니|됐어|괜찮아|필요 ?없|나중에|다음에|안 ?해|아이다|아입니|됐다|됐심더|치아라/)) return { t: "no" };
@@ -114,6 +131,24 @@ export function classify(text: string, tank: number, stage = "gauge"): Intent {
   if (ACTION_STAGES.includes(stage) ? clearYes(s) : yesish) return { t: "yes" };
   if (has(s, /잘 ?돌|따뜻|그럭저럭|괜찮게/)) return { t: "fine" };
   return { t: "unknown" };
+}
+
+// 묻는 말인가. 질문은 낱말만 보고 뜻을 정하지 않는다("돈은 어떻게 내?"는 돈 부담이 아니다)
+export const isQuestion = (text: string) => /\?|언제|얼마|어떻게|어디|왜|누구|뭐|뭔|몇/.test(text);
+
+// 낱말 규칙의 답만으로 충분한가. 모르는 말, 질문, 긴 말은 Gemini에 보낸다
+export function ruleIsEnough(text: string, intent: Intent) {
+  return intent.t !== "unknown" && !isQuestion(text) && text.trim().split(/\s+/).length <= 4;
+}
+
+// 자주 나오는 질문의 종류. Gemini가 답하지 못할 때 화면이 사실 목록의 값으로 바로 답하는 데 쓴다
+export function faqTopic(text: string): "pay" | "delivery" | "cheaper" | "who" | null {
+  const s = text.replace(/\s+/g, " ");
+  if (/(값|돈|기름값)[은는이가]? ?(언제|어떻게|뭐로).*(내|줘|결제|계산)|결제|카드로/.test(s)) return "pay";
+  if (/(언제|며칠).*(갖다|배달|와|걸려)|배달.*(언제|며칠)/.test(s)) return "delivery";
+  if (/(다른|딴) ?(데|곳).*(얼마|싸|싼)|더 ?싼|싼 ?(데|곳)/.test(s)) return "cheaper";
+  if (/어디서.*(전화|연락)|누구/.test(s)) return "who";
+  return null;
 }
 
 // Gemini가 승낙이라고 해도, 승낙이 곧 행동인 단계에서 되묻거나 망설이는 말이면 다시 묻게 한다
@@ -147,10 +182,13 @@ export async function understand(
   }
 }
 
+// 화면의 빠른 답 버튼. 물음표로 끝나는 질문은 낱말 규칙이 읽지 못해 Gemini가 답한다
 export const QUICK: Record<string, string[]> = {
-  gauge: ["아래서 한 칸 남았나", "아직 많아", "세 칸쯤 있어", "바닥이야", "돈이 없어서 아껴 써"],
-  offer: ["그래, 시켜 줘", "반만 넣어 줘", "아니, 됐어", "비싸서 부담돼", "언제 갖다줘?"],
-  confirm: ["네", "아니요"],
+  since: ["아니, 없어", "지난주에 딴 데서 넣었어", "아직 많아", "돈이 없어서 아껴 써", "어디서 전화하는 거요?"],
+  bought: ["반 드럼", "한 드럼", "모르겠어"],
+  gauge: ["아래서 한 칸 남았나", "세 칸쯤 있어", "바닥이야", "밖에 있어서 못 봐"],
+  offer: ["그래, 시켜 줘", "한 드럼으로 넣어 줘", "아니, 됐어", "비싸서 부담돼", "언제 갖다줘?", "다른 데는 얼마야?"],
+  confirm: ["네", "아니요", "값은 언제 내?"],
   checkin: ["그럭저럭 잘 돌려", "아껴 쓰고 있어", "딴 데서 넣었어", "집을 비웠었어"],
   money: ["응, 연결해 줘", "아니, 괜찮아"],
 };

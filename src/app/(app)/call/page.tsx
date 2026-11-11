@@ -5,11 +5,12 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { Loading, StatusBadge } from "@/components/ui";
 import { useHouseholds, View, suggestLiters } from "@/lib/useModel";
 import { fmtDate, fmtL, fmtWon, learnK, project } from "@/lib/model";
-import { CONFUSED_SAMPLE, Intent, QUICK, REASK, Stage, understand } from "@/lib/dialog";
+import { CONFUSED_SAMPLE, Intent, QUICK, REASK, Stage, faqTopic, understand } from "@/lib/dialog";
 import { addFamily, addLog, nowISO, uid, update, useStore } from "@/lib/store";
 import { STATIONS_AS_OF, cheapestIn, useStations } from "@/lib/stations";
 
-type Msg = { who: "ai" | "me" | "sys"; text: string };
+// via: 어르신 말을 누가 읽었는지(말풍선 아래에 표시)
+type Msg = { who: "ai" | "me" | "sys"; text: string; via?: string };
 
 function useEngine() {
   const [e, setE] = useState<{ engine: string; model: string | null } | null>(null);
@@ -41,8 +42,9 @@ function CallInner() {
         <div>
           <h1 className="page-title">AI 전화</h1>
           <p className="page-lead">
-            어르신 창구는 화면이 아니라 음성입니다. 어르신 말은 생성형 AI(Gemini)가 알아듣고, 숫자는 모델이 계산합니다. AI 문장에
-            모델에 없는 숫자가 섞이면 버립니다. 실제 전화망 연결은 하지 않습니다.
+            어르신 창구는 화면이 아니라 음성입니다. &quot;네&quot;, &quot;반 드럼만&quot;처럼 분명한 말은 낱말 규칙이 바로 읽고, 질문이나 돌려
+            하는 말은 생성형 AI(Gemini)가 읽습니다. 숫자는 모델이 계산하고, AI 문장에 모델에 없는 숫자가 섞이면 버립니다. 실제
+            전화망 연결은 하지 않습니다.
           </p>
         </div>
         <div className="flex flex-wrap gap-2">
@@ -89,7 +91,7 @@ function CallSim({ v: live, today }: { v: View; today: string }) {
   const [tts, setTts] = useState(true);
   const [listening, setListening] = useState(false);
   const [busy, setBusy] = useState(false);
-  const [lastSrc, setLastSrc] = useState<{ source: string; note?: string; intent?: string } | null>(null);
+  const [lastNote, setLastNote] = useState<string | undefined>(); // 방금 대답을 어떻게 읽었는지(배지에 마우스를 올리면 보임)
   const endRef = useRef<HTMLDivElement>(null);
   const leadRef = useRef<string | null>(null); // LLM 공감 한마디를 다음 AI 말 앞에 붙임
   const engine = useEngine();
@@ -142,13 +144,17 @@ function CallSim({ v: live, today }: { v: View; today: string }) {
       setStage("checkin");
       return;
     }
-    const cold = p.nextWeekCold ? "이번 주 한파 예보가 있어서 " : "날이 추워지면서 ";
     if (live.status === "ok") {
-      ai(`${hello} 계산으로는 기름이 아직 넉넉해요. ${fmtDate(p.emptyDate)}쯤까지는 쓰실 것 같아요. 혹시 탱크 눈금은 어디쯤인가요?`);
-    } else {
-      ai(`${hello} ${cold}보일러 기름이 ${fmtDate(p.emptyDate)}쯤 떨어질 것 같아요. 탱크 눈금이 지금 어디쯤인가요?`);
+      const until = p.emptyDate ? ` ${fmtDate(p.emptyDate)}쯤까지는 쓰실 것 같아요.` : "";
+      ai(`${hello} 계산으로는 기름이 아직 넉넉해요.${until} 혹시 탱크 눈금은 어디쯤인가요?`);
+      setStage("gauge");
+      return;
     }
-    setStage("gauge");
+    // 눈금은 필수로 묻지 않는다(탱크가 밖에 있으면 추운 날 나가 봐야 한다). 대신 다른 데서 넣었는지 묻는다
+    const cold = p.nextWeekCold ? "이번 주 한파 예보가 있어서 " : "날이 추워지면서 ";
+    const when = p.emptyDate && p.emptyDate <= today ? "거의 떨어졌을 것 같아" : `${fmtDate(p.emptyDate)}쯤 떨어질 것 같아`;
+    ai(`${hello} ${cold}보일러 기름이 ${when} 전화드렸어요. ${REASK.since}`);
+    setStage("since");
   }
 
   function noAnswer() {
@@ -184,17 +190,38 @@ function CallSim({ v: live, today }: { v: View; today: string }) {
     setStage("money");
   }
 
+  // 다른 주유소 가격은 먼저 말하지 않는다. 어르신이 물으면 사실 목록의 값으로 답한다(facts)
   function offer(L: number, lv: number) {
     setLiters(L);
-    const amount = L * v.price;
-    const cheapTxt = cheap
-      ? ` 참고로 ${h.emd} 주유소 중 등유가 가장 싼 곳은 리터에 ${cheap.kerosene.toLocaleString()}원이에요. ${cheapLive ? "오늘" : `${Number(asOf.slice(5, 7))}월 ${Number(asOf.slice(8, 10))}일`} 오피넷 기준이고 배달 여부는 따로 확인해야 해요.`
-      : "";
-    ai(
-      `늘 시키시던 ${dealer} 오늘 가격이 리터에 ${v.price.toLocaleString()}원이에요. ${L}리터면 ${fmtWon(amount)}입니다.${cheapTxt} 주문해 드릴까요?`,
-    );
+    ai(`늘 시키시던 ${dealer} 오늘 가격이 리터에 ${v.price.toLocaleString()}원이에요. ${L}리터면 ${fmtWon(L * v.price)}입니다. 주문해 드릴까요?`);
     setLevel(lv);
     setStage("offer");
+  }
+
+  // 잔량을 g로 고친 뒤: 아직 넉넉하면 다음 연락일을 알리고 끝내고, 아니면 주문을 여쭌다
+  function resume(g: number, k: number, lead: string) {
+    const np = project({ ...v.params, k }, v.days, v.todayIdx, g, v.todayIdx);
+    if (np.alertDate && np.alertDate <= today) {
+      ai(lead);
+      return offer(suggestLiters(h.tank, g), g);
+    }
+    const until = np.emptyDate ? `다시 계산하면 ${fmtDate(np.emptyDate)}쯤까지 쓰실 수 있어요. ` : "";
+    ai(`알려 주셔서 고마워요. ${until}${np.alertDate ? `다음 연락은 ${fmtDate(np.alertDate)}쯤 드릴게요.` : "기름이 줄어들면 다시 연락드릴게요."}`);
+    sys(np.alertDate ? `잔량 보정 → 다음 전화 ${fmtDate(np.alertDate)}` : "잔량 보정 → 당분간 전화 없음");
+    setStage("done");
+  }
+
+  // 다른 데서 넣은 양을 잔량에 더한다(쓴 양을 알 수 없으니 집 계수는 고치지 않는다)
+  function bought(L: number) {
+    const g = Math.min(h.tank, Math.max(0, v.proj.levelToday) + L);
+    update((st) => ({ ...st, gauges: { ...st.gauges, [h.id]: { date: today, level: g } } }));
+    addLog(h.id, "잔량 보정", `다른 곳에서 ${fmtL(L)} 구매 → 잔량 ${fmtL(g)}`);
+    return resume(g, v.params.k, "알려 주셔서 고마워요.");
+  }
+
+  function askBought() {
+    ai("그러셨군요. 얼마나 넣으셨어요? '반 드럼', '한 드럼'처럼 말씀해 주세요.");
+    setStage("bought");
   }
 
   function placeOrder() {
@@ -233,11 +260,27 @@ function CallSim({ v: live, today }: { v: View; today: string }) {
   }
 
   function gaugeStep(it: Intent) {
+    const est = Math.max(0, v.proj.levelToday);
     if (it.t === "money") return moneyFlow();
     if (it.t === "plenty") return miss1("넉넉하시다니 다행이에요. 눈금이 네 칸 중 몇 칸쯤인지 알려 주시면 계산을 고칠게요.", false);
+    // 눈금을 못 보는 분: 못 알아들은 것으로 치지 않고, 계산한 잔량으로 이어 간다
+    if (it.t === "unsure") {
+      if (v.status === "check") {
+        addLog(h.id, "확인 필요", "소진 추정인데 눈금을 보지 못함");
+        ai("괜찮아요. 생활지원사 선생님이 들르실 때 같이 봐 달라고 전해 둘게요. 따뜻하게 지내세요.");
+        setStage("done");
+        return;
+      }
+      if (v.status === "ok") {
+        ai("괜찮아요. 제 계산으로는 아직 넉넉하니, 기름이 줄어들면 다시 연락드릴게요.");
+        setStage("done");
+        return;
+      }
+      ai("괜찮아요. 그럼 제가 계산한 대로 볼게요.");
+      return offer(suggestLiters(h.tank, est), est);
+    }
     if (it.t !== "gauge") return miss1("탱크 눈금이 네 칸 중 몇 칸쯤 남았나요? '한 칸', '반', '바닥'처럼 말씀해 주세요.");
     const g = it.liters;
-      const est = Math.max(0, v.proj.levelToday);
       const ti = v.todayIdx;
       // 눈금으로 잔량을 고치고, 계수도 조금(30%) 고친다
       const startIdx = v.days.findIndex((d) => d.date === v.startDate);
@@ -247,18 +290,10 @@ function CallSim({ v: live, today }: { v: View; today: string }) {
         gauges: { ...st.gauges, [h.id]: { date: today, level: g } },
         kOverride: { ...st.kOverride, [h.id]: newK },
       }));
-      const np = project({ ...v.params, k: newK }, v.days, ti, g, ti);
       const diff = g - est;
       addLog(h.id, "잔량 보정", `눈금 '${it.label}' → ${fmtL(g)} (예상 ${fmtL(est)}), 계수 ${v.params.k.toFixed(2)}→${newK.toFixed(2)}`);
-      if (np.alertDate && np.alertDate > today) {
-        ai(`알려 주셔서 고마워요. 예상보다 넉넉하네요. 다시 계산하면 ${fmtDate(np.emptyDate)}쯤까지 쓰실 수 있어요. 다음 연락은 ${fmtDate(np.alertDate)}쯤 드릴게요.`);
-        sys(`잔량 보정 → 다음 전화 ${fmtDate(np.alertDate)}`);
-        setStage("done");
-        return;
-      }
       const lead = Math.abs(diff) <= 40 ? "네, 예상과 비슷해요." : diff < 0 ? "생각보다 적게 남았네요." : "알려 주셔서 고마워요.";
-      ai(lead);
-      return offer(suggestLiters(h.tank, g), g);
+      return resume(g, newK, lead);
   }
 
   // AI가 말할 수 있는 숫자 목록 (LLM 답변 검증에도 씀)
@@ -266,6 +301,7 @@ function CallSim({ v: live, today }: { v: View; today: string }) {
     const p = v.proj;
     const o = v.orderId ? s.orders.find((x) => x.id === v.orderId) : undefined;
     return {
+      서비스: "울주군 등유 안심(시연용). 등록한 집의 보일러 기름이 떨어지기 전에 AI가 먼저 연락함",
       가구: `${h.label} (${h.emd})`,
       오늘: fmtDate(today),
       "오늘 남은 기름(추정)": fmtL(Math.max(0, level)),
@@ -278,11 +314,23 @@ function CallSim({ v: live, today }: { v: View; today: string }) {
       "제안 주문 금액": fmtWon(liters * v.price),
       "배달": "주문 뒤 판매소가 확인 전화를 하고 보통 1~3일 안에 배달",
       "결제": "배달 올 때 카드나 국민행복카드로 직접 결제. AI는 돈·카드 번호를 묻지 않음",
-      ...(cheap ? { [`${h.emd} 최저 주유소 등유`]: `리터에 ${cheap.kerosene.toLocaleString()}원 (${cheapLive ? "오늘" : asOf} 기준)` } : {}),
+      ...(cheap
+        ? { [`${h.emd} 주유소 중 가장 싼 등유`]: `리터에 ${cheap.kerosene.toLocaleString()}원 (오피넷 ${asOf} 기준. 주유소 가격이라 배달이 되는지는 따로 확인해야 함)` }
+        : {}),
       "바우처 잔액": fmtWon(h.voucherLeft),
       ...(o ? { "주문 상태": o.status } : {}),
     };
   }
+
+  // 자주 나오는 질문의 답. 내용은 facts()와 같아야 한다
+  const FAQ: Record<string, string | null> = {
+    who: "울주군 등유 안심이에요. 기름이 떨어지기 전에 먼저 연락드리는 AI예요.",
+    pay: "값은 배달 올 때 카드나 국민행복카드로 직접 내시면 돼요. 저는 돈이나 카드 번호를 묻지 않아요.",
+    delivery: "주문하시면 판매소에서 확인 전화를 드리고, 보통 1~3일 안에 갖다 드려요.",
+    cheaper: cheap
+      ? `${h.emd} 주유소 중 가장 싼 곳은 리터에 ${cheap.kerosene.toLocaleString()}원이에요. 주유소 가격이라 배달이 되는지는 따로 확인해야 해요.`
+      : null,
+  };
 
   async function reply(text: string) {
     if (!text.trim() || stage === "idle" || stage === "done" || busy) return;
@@ -291,20 +339,65 @@ function CallSim({ v: live, today }: { v: View; today: string }) {
     setBusy(true);
     const u = await understand(text, { stage, tank: h.tank, facts: facts(), history: msgs.slice(-8) });
     setBusy(false);
-    setLastSrc({ source: u.source, note: u.note, intent: u.intent.t });
+    setLastNote(u.note);
+    // 방금 한 말을 누가 읽었는지 말풍선 아래에 남긴다
+    const via =
+      u.source === "gemini"
+        ? "Gemini가 읽음"
+        : u.direct
+          ? "낱말 규칙이 바로 읽음"
+          : engine?.engine === "gemini"
+            ? "Gemini가 답하지 못해 낱말 규칙이 읽음"
+            : "낱말 규칙이 읽음";
+    setMsgs((m) => m.map((x, i) => (i === m.length - 1 && x.who === "me" ? { ...x, via } : x)));
     const it = u.intent;
-    if (it.t === "question") {
-      ai(`${u.answer ?? "그건 제가 정확히 알지 못해요."} ${REASK[stage] ?? ""}`.trim());
+    // Gemini가 답하지 못했어도, 자주 나오는 질문에는 사실 목록의 값으로 바로 답한다
+    const topic = u.source === "rule" && !u.direct ? faqTopic(text) : null;
+    const canned = topic && FAQ[topic];
+    if (canned || it.t === "question") {
+      ai(`${canned || u.answer || "그건 제가 정확히 알지 못해요."} ${REASK[stage] ?? ""}`.trim());
       return;
     }
     leadRef.current = u.say ?? null;
 
+    const est = Math.max(0, v.proj.levelToday);
+
+    if (stage === "since") {
+      if (it.t === "money") return moneyFlow();
+      if (it.t === "gauge") return gaugeStep(it);
+      if (it.t === "elsewhere" && it.liters) return bought(it.liters);
+      if (it.t === "elsewhere" || it.t === "yes") return askBought();
+      if (it.t === "plenty") {
+        ai("넉넉하시다니 다행이에요. 눈금이 네 칸 중 몇 칸쯤인지 알려 주시면 계산을 고칠게요. 보기 어려우시면 모르겠다고 하셔도 돼요.");
+        setStage("gauge");
+        return;
+      }
+      if (it.t === "no" || it.t === "unsure") {
+        ai(it.t === "no" ? "네, 알겠어요." : "괜찮아요. 그럼 제가 계산한 대로 볼게요.");
+        return offer(suggestLiters(h.tank, est), est);
+      }
+      return miss1(REASK.since);
+    }
+
+    if (stage === "bought") {
+      if (it.t === "amount") return bought(it.liters);
+      if (it.t === "unsure") {
+        addLog(h.id, "안내만", "다른 곳에서 구매. 양은 모름");
+        ai("괜찮아요. 다음에 넣으실 때 양을 알려 주시면 계산이 더 정확해져요. 며칠 뒤에 다시 여쭤볼게요.");
+        setStage("done");
+        return;
+      }
+      return miss1("얼마나 넣으셨어요? '반 드럼', '한 드럼'처럼 말씀해 주세요.");
+    }
+
     if (stage === "gauge") return gaugeStep(it);
 
-    // 양을 바꾸는 말은 제안 단계든 확인 단계든 바뀐 양으로 다시 확인받는다
-    const confirmAmount = (L: number) => {
+    // 양을 바꾸는 말은 제안 단계든 확인 단계든 바뀐 양으로 다시 확인받는다. 탱크에 들어갈 자리보다 많이는 받지 않는다
+    const confirmAmount = (want: number) => {
+      const fit = Math.max(20, Math.floor((h.tank - level) / 10) * 10);
+      const L = Math.min(want, fit);
       setLiters(L);
-      ai(`${L}리터면 ${fmtWon(L * v.price)}이에요. ${dealer}에 ${L}리터 주문 넣을까요? 맞으시면 '네'라고 해 주세요.`);
+      ai(`${L < want ? `탱크에 들어갈 자리가 ${fit}리터쯤이에요. ` : ""}${L}리터면 ${fmtWon(L * v.price)}이에요. ${dealer}에 ${L}리터 주문 넣을까요? 맞으시면 '네'라고 해 주세요.`);
       setStage("confirm");
     };
 
@@ -339,13 +432,7 @@ function CallSim({ v: live, today }: { v: View; today: string }) {
 
     if (stage === "checkin") {
       if (it.t === "money") return moneyFlow();
-      if (it.t === "elsewhere") {
-        update((st) => ({ ...st, gauges: { ...st.gauges, [h.id]: { date: today, level: h.tank * 0.75 } } }));
-        addLog(h.id, "잔량 보정", "다른 곳에서 구매. 잔량을 네 칸 중 세 칸으로 가정");
-        ai("다른 곳에서 넣으셨군요. 다음에 넣으실 때 양을 알려 주시면 계산이 더 정확해져요. 따뜻하게 지내세요.");
-        setStage("done");
-        return;
-      }
+      if (it.t === "elsewhere") return it.liters ? bought(it.liters) : askBought();
       if (it.t === "away") {
         // 비운 기간을 계산에서 빼는 기능은 없다. 약속하지 않고, 눈금을 여쭤 잔량을 실제로 고친다
         addLog(h.id, "안내만", "집을 비웠던 기간 있음");
@@ -413,10 +500,13 @@ function CallSim({ v: live, today }: { v: View; today: string }) {
           <div className="flex items-center gap-3">
             <span
               className={`rounded-md px-1.5 py-0.5 text-[11px] font-semibold ${engine?.engine === "gemini" ? "bg-accent-soft text-accent" : "bg-line text-muted"}`}
-              title={lastSrc?.note}
+              title={lastNote}
             >
-              {!engine ? "엔진 확인 중" : engine.engine === "gemini" ? `듣기: ${engine.model}` : "듣기: 규칙 (Gemini 키 없음)"}
-              {lastSrc && ` · 방금 ${lastSrc.source === "gemini" ? "LLM" : "규칙"} → ${lastSrc.intent}`}
+              {!engine
+                ? "엔진 확인 중"
+                : engine.engine === "gemini"
+                  ? `듣기: 낱말 규칙 먼저, 모르는 말은 Gemini(${engine.model})`
+                  : "듣기: 낱말 규칙만 (Gemini 키 없음)"}
             </span>
             <label className="flex items-center gap-2 text-xs text-muted">
               <input type="checkbox" checked={tts} onChange={(e) => setTts(e.target.checked)} /> 음성으로 읽기
@@ -453,6 +543,7 @@ function CallSim({ v: live, today }: { v: View; today: string }) {
                 >
                   <div className="mb-0.5 text-[11px] font-semibold opacity-70">{m.who === "ai" ? "AI" : "어르신"}</div>
                   {m.text}
+                  {m.via && <div className="mt-1 text-[11px] opacity-70">{m.via}</div>}
                 </div>
               </div>
             ),
@@ -525,7 +616,7 @@ function CallSim({ v: live, today }: { v: View; today: string }) {
             <Pair k="알림일" v={fmtDate(v.proj.alertDate)} />
             <Pair k="단골 판매소 가격" v={`${v.price.toLocaleString()}원/L`} />
             <Pair
-              k={`${h.emd} 주유소 최저 (${cheapLive ? "오피넷 실시간" : `오피넷 ${asOf}`})`}
+              k={`${h.emd} 주유소 최저 (오피넷 ${asOf})`}
               v={cheap ? `${cheap.kerosene.toLocaleString()}원/L` : "없음"}
             />
             <Pair k="제안 주문량" v={fmtL(liters)} />

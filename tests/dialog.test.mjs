@@ -204,3 +204,80 @@ for (const [text, want] of numberCases) {
     assert.equal(dialog.numbersOk(text, FACTS), want);
   });
 }
+
+// ---- 통화 대본 변경(2026-11-12) ----
+// 첫 질문은 눈금이 아니라 "지난번 배달 뒤에 다른 데서 기름 넣으신 적 있으세요?"(since 단계)
+const sinceCases = [
+  ["아니, 없어", "no"],
+  ["없어", "no"],
+  ["안 넣었어", "no"], // "넣었어"가 들어 있어도 넣지 않았다는 말이다
+  ["응", "yes"],
+  ["아직 많아", "plenty"],
+  ["한 칸쯤 남았어", "gauge"], // 먼저 눈금을 말해 주면 그대로 받는다
+  ["돈이 없어서 아껴 써", "money"],
+  ["모르겠는데", "unsure"],
+];
+
+for (const [text, want] of sinceCases) {
+  test(`구매 확인 단계: "${text}" → ${want}`, () => {
+    assert.equal(intentOf(text, "since"), want);
+  });
+}
+
+test("다른 데서 넣은 양을 같이 말하면 양까지 읽는다", () => {
+  assert.deepEqual(classify("지난주에 딴 데서 반 드럼 넣었어", TANK, "since"), { t: "elsewhere", liters: 100 });
+  assert.deepEqual(classify("딴 데서 넣었어", TANK, "since"), { t: "elsewhere" });
+});
+
+test('넣은 양을 묻는 단계: "한 드럼"은 200리터, "모르겠어"는 모름', () => {
+  assert.deepEqual(classify("한 드럼", TANK, "bought"), { t: "amount", liters: 200 });
+  assert.equal(intentOf("모르겠어", "bought"), "unsure");
+});
+
+// 눈금을 못 보는 분도 통화를 이어 갈 수 있어야 한다(전에는 두 번 못 알아들은 것으로 쳐서 가족에게 넘겼다)
+for (const text of ["밖에 있어서 못 봐", "모르겠는데"]) {
+  test(`눈금 단계: "${text}" → unsure`, () => {
+    assert.equal(intentOf(text, "gauge"), "unsure");
+  });
+}
+
+test('"다른 데는 얼마야?"는 다른 데서 샀다는 말이 아니라 질문이다', () => {
+  assert.equal(intentOf("다른 데는 얼마야?", "offer"), "unknown");
+});
+
+// 낱말 규칙이 먼저 읽고, 모르는 말·질문·긴 말만 Gemini에 보낸다
+const enoughCases = [
+  ["네", { t: "yes" }, true],
+  ["반 드럼만 넣어 줘", { t: "amount", liters: 100 }, true],
+  ["아래서 한 칸 남았나", { t: "gauge", liters: 50, label: "네 칸 중 한 칸" }, true],
+  ["언제 갖다줘?", { t: "unknown" }, false],
+  ["우리 손주가 언제 온다 했더라", { t: "unknown" }, false],
+  ["돈은 어떻게 내?", { t: "money" }, false], // 질문은 낱말만 보고 정하지 않는다
+  ["글쎄 우리 아들이 시킨다 카던데 나는 잘", { t: "yes" }, false], // 긴 말은 Gemini에
+];
+
+for (const [text, intent, want] of enoughCases) {
+  test(`"${text}" → ${want ? "낱말 규칙으로 바로" : "Gemini에 보냄"}`, () => {
+    assert.equal(dialog.ruleIsEnough(text, intent), want);
+  });
+}
+
+// Gemini가 답하지 못할 때, 자주 나오는 질문은 화면이 사실 목록의 값으로 바로 답한다
+const faqCases = [
+  ["값은 언제 내?", "pay"],
+  ["돈은 어떻게 내?", "pay"],
+  ["언제 갖다줘?", "delivery"],
+  ["며칠 걸려?", "delivery"],
+  ["다른 데는 얼마야?", "cheaper"],
+  ["어디서 전화하는 거요?", "who"],
+  ["어 잠깐만, 누구라고?", "who"],
+  ["우리 손주가 언제 온다 했더라…", null], // 질문처럼 보여도 서비스에 대한 질문이 아니다
+  ["돈이 없어서 어떻게 하노", null], // 돈 부담을 말한 것이지 내는 방법을 물은 것이 아니다
+  ["한 칸 남았나?", null],
+];
+
+for (const [text, want] of faqCases) {
+  test(`자주 나오는 질문: "${text}" → ${want ?? "해당 없음"}`, () => {
+    assert.equal(dialog.faqTopic(text), want);
+  });
+}
