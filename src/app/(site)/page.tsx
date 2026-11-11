@@ -5,7 +5,7 @@ import { APP_HOME, APP_NAME } from "@/lib/routes";
 const FACTS = [
   { v: "약 9,100세대", l: "울주군 도시가스 미공급 (2025)", s: "울산 5개 구·군 중 보급률 최저" },
   { v: "44,943명", l: "울주군 65세 이상 (2025.8)", s: "두서면은 주민의 54.8%가 노인" },
-  { v: "39곳 / 93곳", l: "등유를 파는 울주 주유소", s: "41.9%, 전국 50.2%보다 낮음" },
+  { v: "39곳 / 93곳", l: "등유를 파는 울주 주유소 (2026.9)", s: "41.9%, 전국 50.2%보다 낮음" },
   { v: "약 1.45배", l: "제주 대비 울주 겨울 난방도일", s: "제주 검증 계수를 그대로 쓰면 안 됨" },
 ];
 
@@ -80,7 +80,7 @@ export default function Home() {
             <h3 className="text-[20px] font-medium">실제 자료</h3>
             <ul className="mt-4 text-[16px] md:text-[17px]">
               <li className="border-b border-line py-3">울주군 12개 읍면 기온과 16일 예보 (Open-Meteo)</li>
-              <li className="border-b border-line py-3">울주군 주유소 등유 가격 39곳 (오피넷, 2026-09-19)</li>
+              <li className="border-b border-line py-3">울주군 주유소 등유 가격 (오피넷 실시간 최저가 20곳 + 2026-09-19 저장 자료 39곳)</li>
               <li className="border-b border-line py-3">읍면별 65·75·80세 이상 인구 (공공데이터포털, 2025-08-20)</li>
               <li className="border-b border-line py-3">울주 평년 월별 난방도일 (2023~26 ERA5 계산)</li>
             </ul>
@@ -90,7 +90,7 @@ export default function Home() {
             <ul className="mt-4 text-[16px] md:text-[17px]">
               <li className="border-b border-line py-3">A·B·C 가구와 현황판의 등록 가구</li>
               <li className="border-b border-line py-3">○○상회 같은 판매소 이름과 배달 가격, 바우처 잔액</li>
-              <li className="border-b border-line py-3">AI 대화는 규칙 기반 시나리오 (실제 전화망 연결 없음)</li>
+              <li className="border-b border-line py-3">AI 전화는 화면 안 시연 (실제 전화망 연결 없음)</li>
               <li className="border-b border-line py-3">가구 단위 예측은 아직 실측 검증 전 (01 모델검증 문서)</li>
             </ul>
           </div>
