@@ -4,7 +4,7 @@ import { useState } from "react";
 import LevelChart from "@/components/LevelChart";
 import { Loading, SightGauge, StatusBadge, WeatherNote } from "@/components/ui";
 import { useHouseholds, View } from "@/lib/useModel";
-import { daysBetween, fmtDate, fmtL, fmtWon } from "@/lib/model";
+import { daysBetween, fmtDate, fmtL, fmtMan, fmtWon } from "@/lib/model";
 import { REGION_MEDIAN_K } from "@/data/households";
 import { MONTHLY_HDD } from "@/data/ulju";
 import { update } from "@/lib/store";
@@ -89,11 +89,15 @@ function HouseCard({ v, today }: { v: View; today: string }) {
               )
             }
           />
-          <Fig label="먼저 전화하는 날" value={fmtDate(proj.alertDate)} sub={proj.nextWeekCold ? "한파 예보로 여유분 70L" : "7일 쓸 양 + 50L 아래"} />
+          <Fig
+            label="먼저 전화하는 날"
+            value={fmtDate(proj.alertDate)}
+            sub={`소진 2주 안 · ${proj.nextWeekCold ? "한파 예보로 여유분 70L" : "7일 쓸 양 + 50L 아래"}`}
+          />
           {v.shortfall && (
             <Fig
-              label="이번 겨울 모자랄 돈"
-              value={fmtWon(v.shortfall.shortfall)}
+              label="이번 겨울 본인 부담 비용"
+              value={fmtMan(v.shortfall.shortfall)}
               sub={`예상 비용 − 바우처 잔액 ${fmtWon(h.voucherLeft)}`}
             />
           )}
@@ -118,7 +122,7 @@ function HouseCard({ v, today }: { v: View; today: string }) {
             {v.shortfall && (
               <>
                 <Row k={`남은 겨울 사용량 (~${fmtDate(v.shortfall.end)})`} v={fmtL(v.shortfall.liters)} />
-                <Row k={`예상 비용 (리터 ${v.price.toLocaleString()}원)`} v={fmtWon(v.shortfall.cost)} />
+                <Row k={`예상 비용 (리터 ${v.price.toLocaleString()}원)`} v={fmtMan(v.shortfall.cost)} />
                 <Row k="바우처 잔액 (가상)" v={fmtWon(h.voucherLeft)} />
               </>
             )}

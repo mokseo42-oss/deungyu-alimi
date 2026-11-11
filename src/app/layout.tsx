@@ -6,7 +6,7 @@ export const metadata: Metadata = {
   description: "기름이 떨어지기 전에 먼저 전화하는 AI. 울산 울주군 시범 시연용 웹 데모",
 };
 
-// 소개 페이지는 (site), 실제 기능 화면(유가 알리미)은 (app) 그룹이 각자 메뉴와 바닥글을 가집니다
+// 소개 페이지는 (site), 기능 화면은 (app) 그룹이 각자 메뉴와 바닥글을 가집니다
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="ko">

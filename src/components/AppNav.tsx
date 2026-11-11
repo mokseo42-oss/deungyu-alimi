@@ -11,7 +11,7 @@ const LINKS = [
   { href: "/dashboard", label: "군 현황판" },
 ];
 
-// 실제 기능 화면(유가 알리미) 메뉴. 로고를 누르면 소개 페이지로 돌아간다
+// 기능 화면 메뉴. 로고를 누르면 소개 페이지로, 옆의 '홈' 딱지를 누르면 기능 화면 홈으로 간다
 export default function AppNav() {
   const path = usePathname();
   return (
@@ -27,7 +27,7 @@ export default function AppNav() {
             aria-label={`${APP_NAME} 홈`}
             aria-current={path === APP_HOME ? "page" : undefined}
           >
-            {APP_NAME}
+            홈
           </Link>
         </div>
         <nav

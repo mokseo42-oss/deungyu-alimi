@@ -1,6 +1,6 @@
 import AppNav from "@/components/AppNav";
 
-// 실제 기능 화면(유가 알리미) 틀
+// 기능 화면 틀
 export default function AppLayout({ children }: { children: React.ReactNode }) {
   return (
     <>

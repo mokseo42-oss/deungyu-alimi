@@ -4,7 +4,7 @@ import { useMemo, useState } from "react";
 import { Loading, Stat, StatusBadge, WeatherNote } from "@/components/ui";
 import { useRegistry, View } from "@/lib/useModel";
 import { EMDS, ELDERLY_SHARE_NOTE } from "@/data/ulju";
-import { addDays, daysBetween, fmtDate, fmtL, fmtWon, isColdWave } from "@/lib/model";
+import { addDays, daysBetween, fmtDate, fmtL, fmtMan, fmtWon, isColdWave } from "@/lib/model";
 import { ULJU_STATION_TOTAL, byEmd, cheapestIn, useStations } from "@/lib/stations";
 import { State, update } from "@/lib/store";
 
@@ -190,7 +190,7 @@ export default function Dashboard() {
           </section>
 
           <section className="card overflow-x-auto p-5">
-            <h2 className="sec-title">이번 겨울 모자랄 돈이 큰 집</h2>
+            <h2 className="sec-title">이번 겨울 본인 부담 비용이 큰 집</h2>
             <p className="mt-1 text-xs text-muted">남은 겨울 예상 사용량 × 오늘 가격 − 바우처 잔액. 긴급복지 연료비 같은 제도와 미리 잇는 데 씁니다.</p>
             <table className="tbl mt-3">
               <thead>
@@ -199,7 +199,7 @@ export default function Dashboard() {
                   <th className="text-right">남은 겨울 사용량</th>
                   <th className="text-right">예상 비용</th>
                   <th className="text-right">바우처 잔액</th>
-                  <th className="text-right">부족액</th>
+                  <th className="text-right">본인 부담 비용</th>
                 </tr>
               </thead>
               <tbody className="num">
@@ -207,9 +207,9 @@ export default function Dashboard() {
                   <tr key={v.h.id}>
                     <td>{v.h.label}</td>
                     <td className="text-right">{fmtL(v.shortfall!.liters)}</td>
-                    <td className="text-right">{fmtWon(v.shortfall!.cost)}</td>
+                    <td className="text-right">{fmtMan(v.shortfall!.cost)}</td>
                     <td className="text-right">{fmtWon(v.h.voucherLeft)}</td>
-                    <td className="text-right font-bold text-empty">{fmtWon(v.shortfall!.shortfall)}</td>
+                    <td className="text-right font-bold text-empty">{fmtMan(v.shortfall!.shortfall)}</td>
                   </tr>
                 ))}
               </tbody>
@@ -350,8 +350,8 @@ function EnergyTab({ rows }: { rows: Row[] }) {
               <td className="font-medium">{r.e.name}</td>
               <td className="text-right">{r.list.length}</td>
               <td className="text-right">{fmtL(r.winterL)}</td>
-              <td className="text-right">{fmtWon(r.winterCost)}</td>
-              <td className="text-right font-bold">{fmtWon(r.winterCost / r.list.length)}</td>
+              <td className="text-right">{fmtMan(r.winterCost)}</td>
+              <td className="text-right font-bold">{fmtMan(r.winterCost / r.list.length)}</td>
               <td className="text-right">{r.e.elderly.toLocaleString()}</td>
             </tr>
           ))}

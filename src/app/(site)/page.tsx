@@ -63,7 +63,8 @@ export default function Home() {
           </p>
           <ul className="mt-12 grid gap-y-6 text-[17px] leading-relaxed md:grid-cols-3">
             <li className="border-l border-[#a9a9a9] pl-6 pr-4">
-              알림: 잔량이 <b className="font-semibold">7일 쓸 양 + 50L</b> 아래로 (한파 예보면 70L)
+              알림: 예상 소진일이 <b className="font-semibold">2주 안</b>이고 잔량이{" "}
+              <b className="font-semibold">7일 쓸 양 + 50L</b> 아래일 때 (한파 예보면 70L)
             </li>
             <li className="border-l border-[#a9a9a9] pl-6 pr-4">소진일 7일 뒤에도 주문이 없으면 &quot;살펴봐 주세요&quot;</li>
             <li className="border-l border-[#a9a9a9] pl-6 pr-4">배달할 때마다 집 계수를 다시 배움</li>
@@ -102,7 +103,7 @@ export default function Home() {
           <h2 className="text-[26px] font-light leading-snug md:text-[32px]">
             울주군 시연 가구로
             <br />
-            {APP_NAME}를 직접 써 보세요
+            직접 써 보세요
           </h2>
           <Link href={APP_HOME} className="btn btn-primary !px-11 !py-[18px] !text-[18px]">
             {APP_NAME} 시작하기
