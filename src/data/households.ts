@@ -35,7 +35,8 @@ export const HOUSEHOLDS: Household[] = [
     k: 0.5,
     base: 1.0,
     lastDeliveryLiters: 200,
-    demo: { type: "levelToday", liters: 80 },
+    // 70L: "예상 소진일이 14일 안일 때만 전화" 조건에서도 오늘 '먼저 전화' 장면이 나오게(80L면 15일쯤 남아 여유로 보인다)
+    demo: { type: "levelToday", liters: 70 },
     channel: "AI 스피커",
     approval: "기본",
     family: "딸 (부산)",
