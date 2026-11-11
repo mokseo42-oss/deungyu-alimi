@@ -10,6 +10,7 @@ export default function DealerPage() {
   const { weather, error, views, synth } = useRegistry();
   const s = useStore();
   const [prices, setPrices] = useState<Record<string, string>>({});
+  const [badPrice, setBadPrice] = useState<string | null>(null); // 범위를 벗어난 가격을 넣은 판매소
   const dealers = Array.from(new Set(HOUSEHOLDS.map((h) => h.dealer)));
   const orders = s.orders.filter((o) => o.status !== "취소");
 
@@ -113,11 +114,13 @@ export default function DealerPage() {
               return (
                 <form
                   key={d}
-                  className="flex items-center gap-2 text-sm"
+                  className="flex flex-wrap items-center gap-2 text-sm"
                   onSubmit={(e) => {
                     e.preventDefault();
                     const n = Number(prices[d]);
-                    if (n > 500 && n < 3000) update((st) => ({ ...st, dealerPrices: { ...st.dealerPrices, [d]: n } }));
+                    const ok = n > 500 && n < 3000;
+                    setBadPrice(ok ? null : d);
+                    if (ok) update((st) => ({ ...st, dealerPrices: { ...st.dealerPrices, [d]: n } }));
                   }}
                 >
                   <span className="flex-1">{d}</span>
@@ -129,6 +132,11 @@ export default function DealerPage() {
                     onChange={(e) => setPrices({ ...prices, [d]: e.target.value })}
                   />
                   <button className="btn !py-1">저장</button>
+                  {badPrice === d && (
+                    <span role="alert" className="w-full text-right text-xs text-empty">
+                      500~3,000원 사이 숫자로 넣어 주세요
+                    </span>
+                  )}
                 </form>
               );
             })}
