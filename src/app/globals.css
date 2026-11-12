@@ -1,21 +1,23 @@
 @import "tailwindcss";
 
-/* 흰 바탕, 검정 글씨, 가는 선. 색은 등유 주황 하나만, 기름을 그릴 때만 씁니다. */
+/* 흰 바탕, 검정 글씨, 가는 선. 바탕 회색은 푸른 기가 도는 찬 회색(겨울 아침),
+   색은 등유 주황 하나만, 기름을 그릴 때만 씁니다. 맨 아래는 따뜻한 미색 */
 :root {
   color-scheme: light;
   --nav-h: 104px;
   --bg: #ffffff;
   --panel: #ffffff;
-  --mist: #f3f3f4;
-  --ink: #111111;
-  --muted: #6b6b6b;
-  --line: #dcdcdc;
+  --mist: #f3f4f8;
+  --stone: #f5f5f3;
+  --ink: #000000;
+  --muted: #5f6168;
+  --line: #e1e3e9;
   --night: #111111;
   --night-line: #2e2e2e;
   --night-muted: #a6a6a6;
   --fuel: #d9650f; /* 등유 주황 */
   --accent: #111111;
-  --accent-soft: #f3f3f4;
+  --accent-soft: #f3f4f8;
   --ok: #2f7d4f;
   --call: #96600b;
   --empty: #c02626;
@@ -36,6 +38,7 @@
   --color-bg: var(--bg);
   --color-panel: var(--panel);
   --color-mist: var(--mist);
+  --color-stone: var(--stone);
   --color-ink: var(--ink);
   --color-muted: var(--muted);
   --color-line: var(--line);
@@ -79,7 +82,7 @@
     color: var(--ink);
     font-family: var(--font-sans);
     word-break: keep-all;
-    letter-spacing: -0.01em;
+    letter-spacing: -0.02em;
     line-height: 1.6;
   }
   button {
@@ -275,46 +278,99 @@
     background: rgba(17, 17, 17, 0.45);
   }
 
-  /* 첫 화면 */
+  /* 첫 화면: 왼쪽 글, 오른쪽 그림. 그림은 화면 오른쪽 끝까지 닿고 글은 메뉴 줄과 같은 선에서 시작한다 */
   .hero {
-    position: relative;
-    margin-top: calc(-1 * var(--nav-h));
-    background: linear-gradient(180deg, #e2e2e4 0%, #eeeeef 72%, #e9e9ea 100%);
-    overflow: hidden;
+    border-bottom: 1px solid var(--line);
   }
-  /* 대표 사진 자리. 지금은 비워 둔다 */
-  .hero-in {
-    display: flex;
-    align-items: flex-end;
-    min-height: calc(var(--nav-h) + 380px);
-    padding-top: calc(var(--nav-h) + 48px);
-    padding-bottom: 48px;
+  .hero-grid {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .hero-figure {
+    position: relative;
+    margin: 0;
+    aspect-ratio: 4 / 3;
+    max-height: 56vh;
+    width: 100%;
+    overflow: hidden;
+    background: var(--mist);
+  }
+  /* 사진은 칸을 채우기만 하고 칸 높이를 정하지 않는다. 불 켜진 골목(오른쪽 아래)이 잘리지 않게 */
+  .hero-photo {
+    object-fit: cover;
+    object-position: 62% 60%;
+  }
+  /* 사진 아래쪽을 살짝 어둡게 해 캡션을 읽히게 */
+  .hero-figure::after {
+    content: "";
+    position: absolute;
+    inset: auto 0 0 0;
+    height: 96px;
+    background: linear-gradient(180deg, rgba(0, 0, 0, 0), rgba(0, 0, 0, 0.38));
+    pointer-events: none;
+  }
+  .hero-caption {
+    position: absolute;
+    z-index: 1;
+    left: 20px;
+    right: 20px;
+    bottom: 14px;
+    font-size: 13px;
+    font-weight: 300;
+    color: rgba(255, 255, 255, 0.88);
+  }
+  .hero-copy {
+    padding: 36px 20px 52px;
+  }
+  @media (min-width: 768px) {
+    .hero-copy {
+      padding: 48px 32px 64px;
+    }
+    .hero-caption {
+      left: 28px;
+      bottom: 22px;
+    }
   }
   @media (min-width: 1024px) {
-    .hero-in {
-      min-height: min(82vh, 700px);
-      padding-bottom: 76px;
+    .hero-grid {
+      grid-template-columns: minmax(32px, 1fr) minmax(0, 456px) 64px minmax(0, 664px) minmax(32px, 1fr);
+      min-height: min(calc(100vh - var(--nav-h)), 760px);
+    }
+    .hero-copy {
+      grid-column: 2;
+      grid-row: 1;
+      align-self: end;
+      padding: 64px 0 76px;
+    }
+    .hero-figure {
+      grid-column: 4 / -1;
+      grid-row: 1;
+      aspect-ratio: auto;
+      max-height: none;
     }
   }
   .hero-title {
     font-size: clamp(31px, 3.5vw, 46px);
     font-weight: 250;
     line-height: 1.32;
-    letter-spacing: 0;
+    letter-spacing: -0.01em;
   }
   .hero-cta {
     display: inline-flex;
     align-items: center;
     justify-content: center;
-    min-height: 60px;
-    padding: 0 44px;
-    background: rgba(255, 255, 255, 0.66);
-    font-size: 18px;
+    min-height: 56px;
+    padding: 0 36px;
+    border: 1px solid var(--ink);
+    font-size: 17px;
     font-weight: 400;
-    transition: background 0.15s;
+    transition:
+      background 0.15s,
+      color 0.15s;
   }
   .hero-cta:hover {
-    background: #ffffff;
+    background: var(--ink);
+    color: #ffffff;
   }
   /* 검은 띠의 화면 둘러보기. 넓은 화면에서는 구역이 붙어 있는 동안 스크롤로 네 화면이 바뀐다 */
   .tour-in {
@@ -417,5 +473,4 @@
   .sight-fill,
   .tour-step {
     transition: none;
-  }
-}
+  }}

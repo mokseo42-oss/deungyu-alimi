@@ -1,5 +1,6 @@
 import Link from "next/link";
 import Evidence from "@/components/Evidence";
+import HeroPhoto from "@/components/HeroPhoto";
 import ScreenTour from "@/components/ScreenTour";
 import { APP_HOME, APP_NAME } from "@/lib/routes";
 
@@ -14,18 +15,21 @@ export default function Home() {
   return (
     <>
       <section className="hero">
-        <div className="wrap hero-in">
+        <div className="hero-grid">
+          <figure className="hero-figure">
+            <HeroPhoto />
+          </figure>
           <div className="hero-copy">
             <h1 className="hero-title">
               기름이 떨어지기 전에
               <br />
               먼저 전화하는 AI
             </h1>
-            <div className="mt-7 flex flex-wrap items-center gap-x-7 gap-y-4">
+            <div className="mt-8 flex flex-wrap items-center gap-x-7 gap-y-4">
               <Link href={APP_HOME} className="hero-cta">
                 {APP_NAME} 시작하기
               </Link>
-              <a href="#about" className="border-b border-ink pb-0.5 text-[17px]">
+              <a href="#about" className="border-b border-ink pb-0.5 text-[17px] font-light">
                 어떤 서비스인지 먼저 보기
               </a>
             </div>
