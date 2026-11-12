@@ -68,7 +68,7 @@ export default function Home() {
           </p>
           <ul className="mt-12 grid gap-y-6 text-[17px] leading-relaxed md:grid-cols-3">
             <li className="border-l border-[#a9a9a9] pl-6 pr-4">
-              알림: 예상 소진일이 <b className="font-semibold">2주 안</b>이고 잔량이{" "}
+              알림: 예상 소진일이 <b className="font-semibold">3주 안</b>이고 잔량이{" "}
               <b className="font-semibold">7일 쓸 양 + 50L</b> 아래일 때 (한파 예보면 70L)
             </li>
             <li className="border-l border-[#a9a9a9] pl-6 pr-4">소진일 7일 뒤에도 주문이 없으면 &quot;살펴봐 주세요&quot;</li>

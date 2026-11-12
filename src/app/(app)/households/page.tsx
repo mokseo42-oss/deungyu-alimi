@@ -92,7 +92,7 @@ function HouseCard({ v, today }: { v: View; today: string }) {
           <Fig
             label="먼저 전화하는 날"
             value={fmtDate(proj.alertDate)}
-            sub={`소진 2주 안 · ${proj.nextWeekCold ? "한파 예보로 여유분 70L" : "7일 쓸 양 + 50L 아래"}`}
+            sub={`소진 3주 안 · ${proj.nextWeekCold ? "한파 예보로 여유분 70L" : "7일 쓸 양 + 50L 아래"}`}
           />
           {v.shortfall && (
             <Fig

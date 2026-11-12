@@ -23,7 +23,7 @@ export const MARGIN_COLD = 70; // 한파 예보 때 (03 기획안 4-2)
 export const LEAD_DAYS = 7;
 // 전화는 예상 소진일이 이 날수 안으로 다가왔을 때만. 하루 1L쯤 쓰는 가을에는 여유분 50L가 50일 치라,
 // 잔량 기준만으로는 소진 한 달 반 전에 전화가 간다
-export const ALERT_WITHIN = 14;
+export const ALERT_WITHIN = 21;
 
 export const hdd = (t: number) => Math.max(0, BASE_TEMP - t);
 export const dailyUse = (p: HouseParams, d: Day) => p.base + p.k * hdd(d.tmean);
@@ -193,6 +193,12 @@ export function learnK(p: HouseParams, days: Day[], fromIdx: number, toIdx: numb
   const kObs = Math.max(0.05, (consumed - p.base * n) / h);
   return Math.round((p.k * (1 - weight) + kObs * weight) * 1000) / 1000;
 }
+
+// 눈금이 네 칸 중 한 칸 이하: 소진일이 멀게 계산돼도 주문을 여쭌다
+export const gaugeLow = (tank: number, liters: number) => liters <= tank * 0.25;
+
+// 집 계수가 floor 밑인 집('참는 집' 후보)은 눈금 답으로 계수를 낮추지 않는다. 낮추면 참는 집일수록 다음 전화가 늦어진다
+export const keepLowK = (k: number, learned: number, floor: number) => (k < floor ? Math.max(k, learned) : learned);
 
 export function indexOfDate(days: Day[], date: string) {
   return days.findIndex((d) => d.date === date);
