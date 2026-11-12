@@ -4,7 +4,8 @@ import { Suspense, useEffect, useRef, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Loading, StatusBadge } from "@/components/ui";
 import { useHouseholds, View, suggestLiters } from "@/lib/useModel";
-import { fmtDate, fmtL, fmtWon, learnK, project } from "@/lib/model";
+import { fmtDate, fmtL, fmtWon, gaugeLow, keepLowK, learnK, project } from "@/lib/model";
+import { REGION_MEDIAN_K } from "@/data/households";
 import { CONFUSED_SAMPLE, Intent, QUICK, REASK, Stage, faqTopic, understand } from "@/lib/dialog";
 import { addFamily, addLog, nowISO, uid, update, useStore } from "@/lib/store";
 import { STATIONS_AS_OF, cheapestIn, useStations } from "@/lib/stations";
@@ -270,10 +271,10 @@ function CallSim({ v: live, today }: { v: View; today: string }) {
     setStage("offer");
   }
 
-  // 잔량을 g로 고친 뒤: 아직 넉넉하면 다음 연락일을 알리고 끝내고, 아니면 주문을 여쭌다
+  // 잔량을 g로 고친 뒤: 아직 넉넉하면 다음 연락일을 알리고 끝내고, 아니면(또는 한 칸 이하면) 주문을 여쭌다
   function resume(g: number, k: number, lead: string) {
     const np = project({ ...v.params, k }, v.days, v.todayIdx, g, v.todayIdx);
-    if (np.alertDate && np.alertDate <= today) {
+    if (gaugeLow(h.tank, g) || (np.alertDate && np.alertDate <= today)) {
       ai(lead);
       return offer(suggestLiters(h.tank, g), g);
     }
@@ -359,7 +360,7 @@ function CallSim({ v: live, today }: { v: View; today: string }) {
       const ti = v.todayIdx;
       // 눈금으로 잔량을 고치고, 계수도 조금(30%) 고친다
       const startIdx = v.days.findIndex((d) => d.date === v.startDate);
-      const newK = learnK(v.params, v.days, startIdx, ti, v.startLevel - g, 0.3);
+      const newK = keepLowK(v.params.k, learnK(v.params, v.days, startIdx, ti, v.startLevel - g, 0.3), REGION_MEDIAN_K / 2);
       update((st) => ({
         ...st,
         gauges: { ...st.gauges, [h.id]: { date: today, level: g } },
