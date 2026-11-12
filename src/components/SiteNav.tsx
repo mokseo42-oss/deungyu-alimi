@@ -36,7 +36,7 @@ export default function SiteNav() {
           className="no-scrollbar order-last -mx-1 flex h-12 w-full items-center gap-x-5 overflow-x-auto whitespace-nowrap px-1 md:order-none md:mx-0 md:h-full md:w-auto md:flex-1 md:gap-x-9 md:px-0"
         >
           {SECTIONS.map((s) => (
-            <a key={s.href} href={s.href} className="border-b border-transparent py-1 text-[16px] font-medium hover:border-ink">
+            <a key={s.href} href={s.href} className="border-b border-transparent py-1 text-[16px] font-normal hover:border-ink">
               {s.label}
             </a>
           ))}
