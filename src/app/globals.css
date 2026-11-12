@@ -295,21 +295,29 @@
     overflow: hidden;
     background: var(--mist);
   }
-  /* 그림은 칸을 채우기만 하고 칸 높이를 정하지 않는다 */
-  .hero-figure svg {
+  /* 사진은 칸을 채우기만 하고 칸 높이를 정하지 않는다. 불 켜진 골목(오른쪽 아래)이 잘리지 않게 */
+  .hero-photo {
+    object-fit: cover;
+    object-position: 62% 60%;
+  }
+  /* 사진 아래쪽을 살짝 어둡게 해 캡션을 읽히게 */
+  .hero-figure::after {
+    content: "";
     position: absolute;
-    inset: 0;
-    display: block;
-    width: 100%;
-    height: 100%;
+    inset: auto 0 0 0;
+    height: 96px;
+    background: linear-gradient(180deg, rgba(0, 0, 0, 0), rgba(0, 0, 0, 0.38));
+    pointer-events: none;
   }
   .hero-caption {
     position: absolute;
+    z-index: 1;
     left: 20px;
-    bottom: 16px;
-    font-size: 14px;
+    right: 20px;
+    bottom: 14px;
+    font-size: 13px;
     font-weight: 300;
-    color: rgba(0, 0, 0, 0.72);
+    color: rgba(255, 255, 255, 0.88);
   }
   .hero-copy {
     padding: 36px 20px 52px;
@@ -363,19 +371,6 @@
   .hero-cta:hover {
     background: var(--ink);
     color: #ffffff;
-  }
-  /* 눈금 호스: 거의 가득 → 네 칸 중 한 칸 */
-  .scene-gauge {
-    transform: scaleY(0.25);
-    animation: gauge-drop 2.8s cubic-bezier(0.35, 0, 0.2, 1) 0.4s both;
-  }
-  @keyframes gauge-drop {
-    from {
-      transform: scaleY(0.92);
-    }
-    to {
-      transform: scaleY(0.25);
-    }
   }
   /* 검은 띠의 화면 둘러보기. 넓은 화면에서는 구역이 붙어 있는 동안 스크롤로 네 화면이 바뀐다 */
   .tour-in {
@@ -478,8 +473,4 @@
   .sight-fill,
   .tour-step {
     transition: none;
-  }
-  .scene-gauge {
-    animation: none;
-  }
-}
+  }}

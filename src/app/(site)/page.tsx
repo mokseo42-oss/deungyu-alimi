@@ -1,5 +1,5 @@
 import Link from "next/link";
-import HeroScene from "@/components/HeroScene";
+import HeroPhoto from "@/components/HeroPhoto";
 import ScreenTour from "@/components/ScreenTour";
 import { APP_HOME, APP_NAME } from "@/lib/routes";
 
@@ -16,8 +16,7 @@ export default function Home() {
       <section className="hero">
         <div className="hero-grid">
           <figure className="hero-figure">
-            <HeroScene />
-            <figcaption className="hero-caption">눈금이 한 칸 남으면, 먼저 전화합니다</figcaption>
+            <HeroPhoto />
           </figure>
           <div className="hero-copy">
             <h1 className="hero-title">
