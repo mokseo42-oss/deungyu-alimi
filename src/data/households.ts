@@ -35,7 +35,8 @@ export const HOUSEHOLDS: Household[] = [
     k: 0.5,
     base: 1.0,
     lastDeliveryLiters: 200,
-    demo: { type: "levelToday", liters: 80 },
+    // 70L: "예상 소진일이 14일 안일 때만 전화" 조건에서도 오늘 '먼저 전화' 장면이 나오게(80L면 15일쯤 남아 여유로 보인다)
+    demo: { type: "levelToday", liters: 70 },
     channel: "AI 스피커",
     approval: "기본",
     family: "딸 (부산)",
@@ -83,9 +84,10 @@ export const HOUSEHOLDS: Household[] = [
     dealer: "두동 □□상회 (가상)",
     dealerPrice: 1540,
     voucherLeft: 147000,
-    scenario: "예상 소진일이 지났는데 주문이 없습니다. 계수도 지역 중앙값의 절반 미만이라 '참는 집' 후보로 생활지원사에게 알립니다.",
-    notes: ["집 계수가 지역 중앙값의 절반 미만", "노인맞춤돌봄 대상"],
+    scenario: "예상 소진일이 지났는데 주문이 없습니다. 집 계수도 가정한 지역 중앙값(0.5)의 절반 미만이라 '참는 집' 후보로 생활지원사에게 알립니다.",
+    notes: ["집 계수가 가정한 지역 중앙값의 절반 미만", "노인맞춤돌봄 대상"],
   },
 ];
 
-export const REGION_MEDIAN_K = 0.5; // 01 문서 중간값 가구
+// 재서 얻은 값이 아니라 가정값이다. 모의실험에서 쓴 집 계수 범위(0.3~0.7)의 가운데
+export const REGION_MEDIAN_K = 0.5;

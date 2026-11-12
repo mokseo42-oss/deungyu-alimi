@@ -8,7 +8,7 @@ import { View, useHouseholds } from "@/lib/useModel";
 // 급한 집이 위로 오게
 const URGENCY: Record<Status, number> = { check: 0, empty: 1, call: 2, ordered: 3, ok: 4 };
 
-// 유가 알리미 홈: 오늘 챙길 집을 먼저 보여 주고, 네 화면으로 가는 입구를 둔다
+// 기능 화면 홈: 오늘 챙길 집을 먼저 보여 주고, 네 화면으로 가는 입구를 둔다
 export default function AppHome() {
   const { weather, error, views } = useHouseholds();
   const sorted = views ? [...views].sort((a, b) => URGENCY[a.status] - URGENCY[b.status]) : null;
@@ -44,6 +44,9 @@ export default function AppHome() {
 
       <section className="mt-20 md:mt-28">
         <h2 className="sec-title">화면 바로가기</h2>
+        <p className="mt-2 max-w-3xl text-[15px] leading-relaxed text-muted">
+          처음이라면 왼쪽부터 차례로 보세요. AI 전화에서 넣은 주문이 판매소에 뜨고, 배달을 마치면 가구 잔량과 군 현황판이 바뀝니다.
+        </p>
         <ul className="mt-8 grid gap-y-10 sm:grid-cols-2 lg:grid-cols-4">
           {SCREENS.map((s) => (
             <li key={s.href} className="border-l border-line">

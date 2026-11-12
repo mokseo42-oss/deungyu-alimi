@@ -4,7 +4,7 @@ import { useState } from "react";
 import LevelChart from "@/components/LevelChart";
 import { Loading, SightGauge, StatusBadge, WeatherNote } from "@/components/ui";
 import { useHouseholds, View } from "@/lib/useModel";
-import { daysBetween, fmtDate, fmtL, fmtWon } from "@/lib/model";
+import { daysBetween, fmtDate, fmtL, fmtMan, fmtWon } from "@/lib/model";
 import { REGION_MEDIAN_K } from "@/data/households";
 import { MONTHLY_HDD } from "@/data/ulju";
 import { update } from "@/lib/store";
@@ -89,11 +89,15 @@ function HouseCard({ v, today }: { v: View; today: string }) {
               )
             }
           />
-          <Fig label="먼저 전화하는 날" value={fmtDate(proj.alertDate)} sub={proj.nextWeekCold ? "한파 예보로 여유분 70L" : "7일 쓸 양 + 50L 아래"} />
+          <Fig
+            label="먼저 전화하는 날"
+            value={fmtDate(proj.alertDate)}
+            sub={`소진 2주 안 · ${proj.nextWeekCold ? "한파 예보로 여유분 70L" : "7일 쓸 양 + 50L 아래"}`}
+          />
           {v.shortfall && (
             <Fig
-              label="이번 겨울 모자랄 돈"
-              value={fmtWon(v.shortfall.shortfall)}
+              label="이번 겨울 본인 부담 비용"
+              value={fmtMan(v.shortfall.shortfall)}
               sub={`예상 비용 − 바우처 잔액 ${fmtWon(h.voucherLeft)}`}
             />
           )}
@@ -110,7 +114,7 @@ function HouseCard({ v, today }: { v: View; today: string }) {
               v={
                 <>
                   {v.params.k.toFixed(2)} L/난방도일
-                  {lowK && <span className="ml-1 text-check">(지역 중앙값 절반 미만)</span>}
+                  {lowK && <span className="ml-1 text-check">(가정한 지역 중앙값의 절반 미만)</span>}
                 </>
               }
             />
@@ -118,7 +122,7 @@ function HouseCard({ v, today }: { v: View; today: string }) {
             {v.shortfall && (
               <>
                 <Row k={`남은 겨울 사용량 (~${fmtDate(v.shortfall.end)})`} v={fmtL(v.shortfall.liters)} />
-                <Row k={`예상 비용 (리터 ${v.price.toLocaleString()}원)`} v={fmtWon(v.shortfall.cost)} />
+                <Row k={`예상 비용 (리터 ${v.price.toLocaleString()}원)`} v={fmtMan(v.shortfall.cost)} />
                 <Row k="바우처 잔액 (가상)" v={fmtWon(h.voucherLeft)} />
               </>
             )}
@@ -168,8 +172,8 @@ function RegisterCalc() {
         </div>
       </div>
       <p className="mt-8 max-w-4xl text-sm text-muted">
-        계산: (지난겨울 총량 {total.toLocaleString()}L − 기본 {base}L × 151일) ÷ 울주 평년 겨울 난방도일 {winterHdd.toLocaleString()}. 지역
-        중앙값은 {REGION_MEDIAN_K}입니다. 이 값이 절반({REGION_MEDIAN_K / 2}) 밑이면 &quot;원래 적게 쓰는 집&quot;이 아니라 참는 집일 수 있어 살펴보기 대상에 넣습니다.
+        계산: (지난겨울 총량 {total.toLocaleString()}L − 기본 {base}L × 151일) ÷ 울주 예년 평균(최근 세 겨울) 겨울 난방도일 {winterHdd.toLocaleString()}. 지역
+        중앙값은 아직 재지 못해 {REGION_MEDIAN_K}로 가정했습니다(모의실험에 쓴 범위의 가운데). 집 계수가 그 절반({REGION_MEDIAN_K / 2}) 밑이면 &quot;원래 적게 쓰는 집&quot;이 아니라 참는 집일 수 있어 살펴보기 대상에 넣습니다.
       </p>
       <button
         className="mt-5 text-sm text-muted underline underline-offset-4 hover:text-ink"

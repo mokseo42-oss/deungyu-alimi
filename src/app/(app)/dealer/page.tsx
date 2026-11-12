@@ -10,6 +10,7 @@ export default function DealerPage() {
   const { weather, error, views, synth } = useRegistry();
   const s = useStore();
   const [prices, setPrices] = useState<Record<string, string>>({});
+  const [badPrice, setBadPrice] = useState<string | null>(null); // 범위를 벗어난 가격을 넣은 판매소
   const dealers = Array.from(new Set(HOUSEHOLDS.map((h) => h.dealer)));
   const orders = s.orders.filter((o) => o.status !== "취소");
 
@@ -113,11 +114,13 @@ export default function DealerPage() {
               return (
                 <form
                   key={d}
-                  className="flex items-center gap-2 text-sm"
+                  className="flex flex-wrap items-center gap-2 text-sm"
                   onSubmit={(e) => {
                     e.preventDefault();
                     const n = Number(prices[d]);
-                    if (n > 500 && n < 3000) update((st) => ({ ...st, dealerPrices: { ...st.dealerPrices, [d]: n } }));
+                    const ok = n > 500 && n < 3000;
+                    setBadPrice(ok ? null : d);
+                    if (ok) update((st) => ({ ...st, dealerPrices: { ...st.dealerPrices, [d]: n } }));
                   }}
                 >
                   <span className="flex-1">{d}</span>
@@ -129,6 +132,11 @@ export default function DealerPage() {
                     onChange={(e) => setPrices({ ...prices, [d]: e.target.value })}
                   />
                   <button className="btn !py-1">저장</button>
+                  {badPrice === d && (
+                    <span role="alert" className="w-full text-right text-xs text-empty">
+                      500~3,000원 사이 숫자로 넣어 주세요
+                    </span>
+                  )}
                 </form>
               );
             })}
@@ -141,12 +149,16 @@ export default function DealerPage() {
 
 function OrderRow({ o, v }: { o: Order; v?: View }) {
   const [amount, setAmount] = useState(String(o.liters));
-  const set = (status: Order["status"], extra: Partial<Order> = {}) =>
+  const [bad, setBad] = useState(false);
+  const set =(status: Order["status"], extra: Partial<Order> = {}) =>
     update((st) => ({ ...st, orders: st.orders.map((x) => (x.id === o.id ? { ...x, status, ...extra } : x)) }));
 
   function deliver() {
     if (!v) return;
-    const L = Math.max(0, Math.min(v.h.tank, Number(amount) || 0));
+    // 빈칸, 글자, 0은 배달로 적지 않는다(전에는 "0L 배달 완료"가 가족 알림까지 나갔다)
+    const n = Number(amount);
+    if (!(n > 0)) return setBad(true);
+    const L = Math.min(v.h.tank, n);
     const today = v.days[v.todayIdx].date;
     const before = Math.max(0, v.proj.levelToday);
     const after = Math.min(v.h.tank, before + L);
@@ -162,7 +174,7 @@ function OrderRow({ o, v }: { o: Order; v?: View }) {
       kOverride: { ...st.kOverride, [o.hid]: newK },
     }));
     addLog(o.hid, "배달", `${L}L 배달 · 탱크 ${fmtL(after)} · 계수 ${v.params.k.toFixed(2)}→${newK.toFixed(2)}`);
-    if (v.h.family) addFamily(o.hid, `[등유 안심] 부모님 댁에 등유 ${L}L 배달을 마쳤어요. (${o.dealer})`);
+    if (v.h.family) addFamily(o.hid, `[등유 안심] 부모님 댁에 등유 ${L}L 배달을 마쳤어요. (${o.dealer.replace(" (가상)", "")})`);
   }
 
   return (
@@ -190,11 +202,25 @@ function OrderRow({ o, v }: { o: Order; v?: View }) {
         )}
         {o.status === "판매소 확인" && (
           <div className="flex items-center gap-1">
-            <input className="inp num w-16 !py-1 text-xs" value={amount} onChange={(e) => setAmount(e.target.value)} />
+            <input
+              className="inp num w-16 !py-1 text-xs"
+              aria-label="배달량(리터)"
+              aria-invalid={bad}
+              value={amount}
+              onChange={(e) => {
+                setAmount(e.target.value);
+                setBad(false);
+              }}
+            />
             <span className="text-xs">L</span>
             <button className="btn btn-primary !py-1 text-xs" onClick={deliver}>
               배달 완료
             </button>
+            {bad && (
+              <span role="alert" className="text-xs text-empty">
+                배달량을 숫자로 넣어 주세요
+              </span>
+            )}
           </div>
         )}
         {o.status === "배달 완료" && <span className="text-xs text-ok">배달 {fmtL(o.delivered ?? o.liters)}</span>}

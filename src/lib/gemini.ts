@@ -8,13 +8,14 @@ export function hasGemini() {
 
 type Schema = Record<string, unknown>;
 
-export async function geminiJSON<T>(system: string, user: string, schema: Schema, timeoutMs = 8000): Promise<T> {
+// 전화에서 오래 멈추지 않게 4초 안에 답이 없으면 포기한다(그때는 낱말 규칙의 답을 쓴다)
+export async function geminiJSON<T>(system: string, user: string, schema: Schema, timeoutMs = 4000): Promise<T> {
   const key = process.env.GEMINI_API_KEY;
   if (!key) throw new Error("GEMINI_API_KEY 없음");
   const ctrl = new AbortController();
   const timer = setTimeout(() => ctrl.abort(), timeoutMs);
-  try {
-    const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${GEMINI_MODEL}:generateContent`, {
+  const ask = () =>
+    fetch(`https://generativelanguage.googleapis.com/v1beta/models/${GEMINI_MODEL}:generateContent`, {
       method: "POST",
       headers: { "Content-Type": "application/json", "x-goog-api-key": key },
       body: JSON.stringify({
@@ -30,6 +31,9 @@ export async function geminiJSON<T>(system: string, user: string, schema: Schema
       signal: ctrl.signal,
       cache: "no-store",
     });
+  try {
+    let res = await ask();
+    if (res.status === 503) res = await ask(); // "사용량 많음"은 한 번만 다시 묻는다. 두 번을 합쳐 timeoutMs 안에 끝낸다
     if (!res.ok) throw new Error(`gemini ${res.status}: ${(await res.text()).slice(0, 200)}`);
     const json = (await res.json()) as { candidates?: { content?: { parts?: { text?: string }[] } }[] };
     const text = json.candidates?.[0]?.content?.parts?.map((p) => p.text ?? "").join("") ?? "";

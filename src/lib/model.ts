@@ -8,7 +8,7 @@ export type Day = {
   date: string; // YYYY-MM-DD
   tmean: number;
   tmin: number;
-  src: "obs" | "fcst" | "clim"; // 관측(재분석), 예보, 평년 대체
+  src: "obs" | "fcst" | "clim"; // 관측(재분석), 예보, 예년 평균(최근 세 겨울) 대체
 };
 
 export type HouseParams = {
@@ -21,6 +21,9 @@ export const BASE_TEMP = 18;
 export const MARGIN = 50; // L
 export const MARGIN_COLD = 70; // 한파 예보 때 (03 기획안 4-2)
 export const LEAD_DAYS = 7;
+// 전화는 예상 소진일이 이 날수 안으로 다가왔을 때만. 하루 1L쯤 쓰는 가을에는 여유분 50L가 50일 치라,
+// 잔량 기준만으로는 소진 한 달 반 전에 전화가 간다
+export const ALERT_WITHIN = 14;
 
 export const hdd = (t: number) => Math.max(0, BASE_TEMP - t);
 export const dailyUse = (p: HouseParams, d: Day) => p.base + p.k * hdd(d.tmean);
@@ -45,7 +48,7 @@ export function daysInMonth(date: string) {
   return new Date(Date.UTC(y, m, 0)).getUTCDate();
 }
 
-// 예보(최대 16일)가 끝난 뒤는 월별 평년 난방도일로 채움
+// 예보(최대 16일)가 끝난 뒤는 월별 예년 평균 난방도일로 채움
 export function extendWithClimate(days: Day[], untilDate: string): Day[] {
   const out = days.slice();
   let last = out[out.length - 1]?.date;
@@ -126,16 +129,17 @@ export function project(
 ): Projection {
   const points: Point[] = [];
   let level = startLevel;
-  let alertDate: string | null = null;
   let emptyDate: string | null = null;
   for (let i = startIdx; i < days.length; i++) {
     const use = dailyUse(p, days[i]);
     const th = threshold(p, days, i);
     points.push({ date: days[i].date, level, use, threshold: th.value, cold: th.cold, src: days[i].src });
-    if (!alertDate && level < th.value) alertDate = days[i].date;
     if (!emptyDate && level <= 0) emptyDate = days[i].date;
     level -= use;
   }
+  // 알림일: 예상 소진일이 ALERT_WITHIN일 안으로 다가온 날들 가운데, 잔량이 알림 기준 아래인 첫날
+  const from = emptyDate && addDays(emptyDate, -ALERT_WITHIN);
+  const alertDate = (from && points.find((x) => x.date >= from && x.level < x.threshold)?.date) || null;
   const today = points.find((x) => x.date === days[todayIdx].date);
   return {
     points,
@@ -166,7 +170,7 @@ export function statusOf(proj: Projection, today: string, hasOpenOrder: boolean)
   return "ok";
 }
 
-// 겨울 남은 사용량과 부족액 (03 기획안 3절, 00 제안서 3-4)
+// 겨울 남은 사용량과 본인 부담 비용(예상 비용 − 바우처 잔액) (03 기획안 3절, 00 제안서 3-4)
 export function winterShortfall(p: HouseParams, days: Day[], todayIdx: number, price: number, voucherLeft: number) {
   const end = winterEnd(days[todayIdx].date);
   if (!end) return null;
@@ -185,6 +189,7 @@ export function learnK(p: HouseParams, days: Day[], fromIdx: number, toIdx: numb
     n++;
   }
   if (h < 20) return p.k; // 너무 따뜻했던 기간이면 고치지 않음
+  if (consumed <= 0) return p.k; // 눈금이 시작한 양보다 많다 = 그사이 다른 데서 넣었다. 쓴 양을 알 수 없으니 고치지 않음
   const kObs = Math.max(0.05, (consumed - p.base * n) / h);
   return Math.round((p.k * (1 - weight) + kObs * weight) * 1000) / 1000;
 }
@@ -201,6 +206,8 @@ export const fmtDate = (date: string | null) => {
 };
 
 export const fmtWon = (n: number) => `${Math.round(n).toLocaleString("ko-KR")}원`;
+// 추정 금액은 만 원 단위로만 보여 준다(오차가 20% 안팎인 값을 원 단위까지 적지 않는다)
+export const fmtMan = (n: number) => `약 ${Math.round(n / 10000).toLocaleString("ko-KR")}만 원`;
 export const fmtL = (n: number) => `${Math.round(n).toLocaleString("ko-KR")}L`;
 
 export function daysBetween(a: string, b: string) {

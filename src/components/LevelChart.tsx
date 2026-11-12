@@ -3,7 +3,7 @@ import { useState } from "react";
 import { View } from "@/lib/useModel";
 import { fmtDate, fmtL } from "@/lib/model";
 
-// 잔량 그래프: 실선=지난 기온으로 계산, 굵은 주황=예보, 점선=평년값. 회색 점선=알림 기준(7일 쓸 양+여유분)
+// 잔량 그래프: 실선=지난 기온으로 계산, 굵은 주황=예보, 점선=예년 평균(최근 세 겨울). 회색 점선=알림 기준(7일 쓸 양+여유분)
 export default function LevelChart({ v, horizon = 30 }: { v: View; horizon?: number }) {
   const [hover, setHover] = useState<number | null>(null);
   const pts = v.proj.points;
@@ -18,14 +18,15 @@ export default function LevelChart({ v, horizon = 30 }: { v: View; horizon?: num
     T = 12,
     B = 26;
   const maxY = Math.max(v.params.tank, ...shown.map((p) => p.level));
-  const minY = Math.min(0, ...shown.map((p) => p.level));
+  // 다 쓴 뒤의 잔량은 0에서 멈춘다(모델 안의 값은 음수로 계속 내려간다)
+  const lv = (p: { level: number }) => Math.max(0, p.level);
   const x = (i: number) => L + (i / Math.max(1, shown.length - 1)) * (W - L - R);
-  const y = (val: number) => T + (1 - (val - minY) / (maxY - minY)) * (H - T - B);
+  const y = (val: number) => T + (1 - val / maxY) * (H - T - B);
   const path = (filter: (src: string) => boolean) => {
     let d = "";
     shown.forEach((p, i) => {
       const prevOk = i > 0 && filter(shown[i - 1].src);
-      if (filter(p.src) || prevOk) d += `${d && prevOk ? "L" : "M"}${x(i).toFixed(1)},${y(p.level).toFixed(1)}`;
+      if (filter(p.src) || prevOk) d += `${d && prevOk ? "L" : "M"}${x(i).toFixed(1)},${y(lv(p)).toFixed(1)}`;
     });
     return d;
   };
@@ -57,7 +58,6 @@ export default function LevelChart({ v, horizon = 30 }: { v: View; horizon?: num
             </text>
           </g>
         ))}
-        {minY < 0 && <rect x={L} y={y(0)} width={W - L - R} height={y(minY) - y(0)} fill="var(--empty)" opacity="0.07" />}
         <path d={th} fill="none" stroke="var(--chart-th)" strokeDasharray="4 4" strokeWidth="1.5" />
         <path d={path((s) => s === "obs")} fill="none" stroke="var(--ink)" strokeWidth="1.75" />
         <path d={path((s) => s === "fcst")} fill="none" stroke="var(--chart-fcst)" strokeWidth="3" />
@@ -70,7 +70,7 @@ export default function LevelChart({ v, horizon = 30 }: { v: View; horizon?: num
             </text>
           </g>
         )}
-        {alertI >= 0 && <circle cx={x(alertI)} cy={y(shown[alertI].level)} r="5" fill="#ffffff" stroke="var(--ink)" strokeWidth="2" />}
+        {alertI >= 0 && <circle cx={x(alertI)} cy={y(lv(shown[alertI]))} r="5" fill="#ffffff" stroke="var(--ink)" strokeWidth="2" />}
         {emptyI >= 0 && <circle cx={x(emptyI)} cy={y(0)} r="5" fill="var(--empty)" />}
         {shown.map((p, i) =>
           p.cold && p.src !== "obs" ? <rect key={p.date} x={x(i) - 2} y={H - B + 2} width="4" height="5" fill="var(--cold)" /> : null,
@@ -87,10 +87,10 @@ export default function LevelChart({ v, horizon = 30 }: { v: View; horizon?: num
         <div className="pointer-events-none absolute right-2 top-2 border border-ink bg-panel px-3 py-2 text-xs">
           <div className="font-semibold">{fmtDate(h.date)}</div>
           <div className="num">
-            잔량 {fmtL(h.level)} · 하루 {h.use.toFixed(1)}L
+            잔량 {fmtL(lv(h))} · 하루 {h.use.toFixed(1)}L
           </div>
           <div className="num text-muted">
-            알림 기준 {fmtL(h.threshold)} {h.cold ? "(한파)" : ""} · {h.src === "obs" ? "지난 기온" : h.src === "fcst" ? "예보" : "평년값"}
+            알림 기준 {fmtL(h.threshold)} {h.cold ? "(한파)" : ""} · {h.src === "obs" ? "지난 기온" : h.src === "fcst" ? "예보" : "예년 평균"}
           </div>
         </div>
       )}
@@ -105,7 +105,7 @@ export default function LevelChart({ v, horizon = 30 }: { v: View; horizon?: num
         </li>
         <li className="flex items-center gap-2">
           <span aria-hidden="true" className="w-5 border-t-2 border-dotted border-fuel" />
-          평년값
+          예년 평균
         </li>
         <li className="flex items-center gap-2">
           <span aria-hidden="true" className="w-5 border-t-2 border-dashed border-[#9a9a9a]" />

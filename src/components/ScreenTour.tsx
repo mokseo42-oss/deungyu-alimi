@@ -2,7 +2,7 @@
 import { useEffect, useRef, useState } from "react";
 import { SightGauge, StatusBadge } from "@/components/ui";
 import { EMDS } from "@/data/ulju";
-import { QUICK } from "@/lib/dialog";
+import { QUICK, REASK } from "@/lib/dialog";
 import { daysBetween, fmtDate, fmtL, fmtWon } from "@/lib/model";
 import { SCREENS } from "@/lib/routes";
 import { View, suggestLiters, useHouseholds } from "@/lib/useModel";
@@ -204,14 +204,14 @@ function CallScreen({ v }: { v: View }) {
       <p className="mt-4 text-center text-[11px] text-muted">{speaker ? "AI 스피커가 말을 겁니다" : "전화가 옵니다"}</p>
       <div className="mt-3 bg-mist px-3 py-2.5 text-[13px] leading-relaxed">
         <div className="mb-0.5 text-[10px] font-semibold text-muted">AI</div>
-        {hello} {cold}보일러 기름이 {fmtDate(v.proj.emptyDate)}쯤 떨어질 것 같아요. 탱크 눈금이 지금 어디쯤인가요?
+        {hello} {cold}보일러 기름이 {fmtDate(v.proj.emptyDate)}쯤 떨어질 것 같아 전화드렸어요. {REASK.since}
       </div>
       <div className="mt-3 ml-auto max-w-[80%] bg-ink px-3 py-2.5 text-[13px] leading-relaxed text-white">
         <div className="mb-0.5 text-[10px] font-semibold opacity-70">어르신</div>
-        {QUICK.gauge[0]}
+        {QUICK.since[0]}
       </div>
       <div className="mt-auto flex flex-wrap gap-1.5 pt-4">
-        {QUICK.gauge.slice(1, 4).map((q) => (
+        {QUICK.since.slice(1, 4).map((q) => (
           <span key={q} className="border border-[#c4c4c4] px-2 py-1.5 text-[11px]">
             {q}
           </span>

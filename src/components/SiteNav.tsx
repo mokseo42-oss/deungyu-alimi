@@ -7,6 +7,7 @@ const SECTIONS = [
   { href: "#about", label: "소개" },
   { href: "#facts", label: "울주군 현황" },
   { href: "#model", label: "예측 모델" },
+  { href: "#evidence", label: "검증 결과" },
   { href: "#screens", label: "화면 구성" },
   { href: "#data", label: "자료 출처" },
 ];

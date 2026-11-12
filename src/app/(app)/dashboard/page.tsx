@@ -4,11 +4,16 @@ import { useMemo, useState } from "react";
 import { Loading, Stat, StatusBadge, WeatherNote } from "@/components/ui";
 import { useRegistry, View } from "@/lib/useModel";
 import { EMDS, ELDERLY_SHARE_NOTE } from "@/data/ulju";
-import { addDays, daysBetween, fmtDate, fmtL, fmtWon, isColdWave } from "@/lib/model";
-import { ULJU_STATION_TOTAL, byEmd, cheapestIn, useStations } from "@/lib/stations";
-import { update } from "@/lib/store";
+import { REGION_MEDIAN_K } from "@/data/households";
+import { addDays, daysBetween, fmtDate, fmtL, fmtMan, fmtWon, isColdWave } from "@/lib/model";
+import { STATIONS_AS_OF, ULJU_STATION_TOTAL, byEmd, cheapestIn, useStations } from "@/lib/stations";
+import { State, update } from "@/lib/store";
 
 type Tab = "welfare" | "energy";
+
+// '살펴봐 주세요'에 보일 집. 생활지원사가 '해결'로 닫은 집은 목록과 숫자에서 뺀다
+const needsLook = (v: View, checks: State["checks"]) =>
+  (v.status === "check" || !!checks[v.h.id]) && checks[v.h.id] !== "해결";
 
 export default function Dashboard() {
   const { weather, error, views, synth, store } = useRegistry();
@@ -36,9 +41,10 @@ export default function Dashboard() {
         list,
         callWeek: list.filter((v) => v.status === "call" || (v.status === "ok" && v.proj.alertDate && v.proj.alertDate <= week)).length,
         empty: list.filter((v) => v.status === "empty").length,
-        check: list.filter((v) => v.status === "check" || store.checks[v.h.id]).length,
+        check: list.filter((v) => needsLook(v, store.checks)).length,
         stations: here.length,
         minPrice: low ? low.kerosene : null,
+        minSaved: st.live && !!low && !low.live, // 실시간 최저가 목록에 없어 저장 자료 가격을 쓴 읍면
         winterL: list.reduce((a, v) => a + (v.shortfall?.liters ?? 0), 0),
         winterCost: list.reduce((a, v) => a + (v.shortfall?.cost ?? 0), 0),
         cold: coldDays[e.name],
@@ -60,7 +66,7 @@ export default function Dashboard() {
     );
 
   const lookList = all
-    .filter((v) => v.status === "check" || store.checks[v.h.id])
+    .filter((v) => needsLook(v, store.checks))
     .sort((a, b) => (a.h.id.length - b.h.id.length) || (a.proj.emptyDate ?? "").localeCompare(b.proj.emptyDate ?? ""));
   const noAnswer = store.logs.filter((l) => l.kind === "안부 확인 필요" || l.kind === "확인 필요");
   const shortTop = all
@@ -160,7 +166,7 @@ export default function Dashboard() {
               <tbody className="num">
                 {data.perEmd.map((r) => (
                   <tr key={r.e.name}>
-                    <td className="font-medium">
+                    <td className="whitespace-nowrap font-medium">
                       {r.e.name}
                       {ELDERLY_SHARE_NOTE[r.e.name] && <div className="text-[11px] font-normal text-muted">{ELDERLY_SHARE_NOTE[r.e.name]}</div>}
                     </td>
@@ -173,7 +179,10 @@ export default function Dashboard() {
                     <td className="text-right text-call">{r.callWeek || ""}</td>
                     <td className="text-right text-check">{r.check || ""}</td>
                     <td className="text-right">{r.stations}</td>
-                    <td className="text-right">{r.minPrice ? `${r.minPrice.toLocaleString()}원` : "—"}</td>
+                    <td className="whitespace-nowrap text-right">
+                      {r.minPrice ? `${r.minPrice.toLocaleString()}원` : "—"}
+                      {r.minSaved && <span className="text-muted">*</span>}
+                    </td>
                     <td className="text-xs">{r.cold.length ? r.cold.map((d) => fmtDate(d).replace(/ \(.\)/, "")).join(", ") : ""}</td>
                   </tr>
                 ))}
@@ -182,11 +191,12 @@ export default function Dashboard() {
             <p className="mt-2 text-xs text-muted">
               노인 인구: 공공데이터포털 2025-08-20 · 주유소: {st.live ? `오피넷 실시간 ${st.asOf} (최저가 ${st.liveCount}곳${st.average ? `, 울주 평균 ${Math.round(st.average.price).toLocaleString()}원` : ""}) + 저장 자료 2026-09-19` : "오피넷 2026-09-19 저장 자료"}, 울주 {ULJU_STATION_TOTAL}곳 중 등유 가격이 있는 {st.stations.length}곳 ·
               한파 신호는 최저 -12℃ 이하 또는 하루 10℃ 넘는 급강하(단순화)
+              {st.live && ` · 최저가의 *는 실시간 목록에 없어 ${STATIONS_AS_OF} 저장 가격을 쓴 읍면`}
             </p>
           </section>
 
           <section className="card overflow-x-auto p-5">
-            <h2 className="sec-title">이번 겨울 모자랄 돈이 큰 집</h2>
+            <h2 className="sec-title">이번 겨울 본인 부담 비용이 큰 집</h2>
             <p className="mt-1 text-xs text-muted">남은 겨울 예상 사용량 × 오늘 가격 − 바우처 잔액. 긴급복지 연료비 같은 제도와 미리 잇는 데 씁니다.</p>
             <table className="tbl mt-3">
               <thead>
@@ -195,17 +205,17 @@ export default function Dashboard() {
                   <th className="text-right">남은 겨울 사용량</th>
                   <th className="text-right">예상 비용</th>
                   <th className="text-right">바우처 잔액</th>
-                  <th className="text-right">부족액</th>
+                  <th className="text-right">본인 부담 비용</th>
                 </tr>
               </thead>
-              <tbody className="num">
+              <tbody className="num whitespace-nowrap">
                 {shortTop.map((v) => (
                   <tr key={v.h.id}>
                     <td>{v.h.label}</td>
                     <td className="text-right">{fmtL(v.shortfall!.liters)}</td>
-                    <td className="text-right">{fmtWon(v.shortfall!.cost)}</td>
+                    <td className="text-right">{fmtMan(v.shortfall!.cost)}</td>
                     <td className="text-right">{fmtWon(v.h.voucherLeft)}</td>
-                    <td className="text-right font-bold text-empty">{fmtWon(v.shortfall!.shortfall)}</td>
+                    <td className="text-right font-bold text-empty">{fmtMan(v.shortfall!.shortfall)}</td>
                   </tr>
                 ))}
               </tbody>
@@ -230,12 +240,12 @@ function LookItem({ v, today, state }: { v: View; today: string; state?: "요청
         </div>
         <div className="flex gap-1">
           {state !== "방문 배정" && state !== "해결" && (
-            <button className="btn !px-2 !py-1 text-xs" onClick={() => update((s) => ({ ...s, checks: { ...s.checks, [v.h.id]: "방문 배정" } }))}>
+            <button className="btn !px-3 !py-2 text-xs" onClick={() => update((s) => ({ ...s, checks: { ...s.checks, [v.h.id]: "방문 배정" } }))}>
               방문 배정
             </button>
           )}
           {state !== "해결" && (
-            <button className="btn !px-2 !py-1 text-xs" onClick={() => update((s) => ({ ...s, checks: { ...s.checks, [v.h.id]: "해결" } }))}>
+            <button className="btn !px-3 !py-2 text-xs" onClick={() => update((s) => ({ ...s, checks: { ...s.checks, [v.h.id]: "해결" } }))}>
               해결
             </button>
           )}
@@ -245,7 +255,7 @@ function LookItem({ v, today, state }: { v: View; today: string; state?: "요청
       <div className="mt-1 text-xs text-muted">
         {days != null && days > 0 ? `예상 소진일 ${fmtDate(v.proj.emptyDate)}에서 ${days}일 지남 · ` : ""}
         집 계수 {v.params.k.toFixed(2)}
-        {v.params.k < 0.25 ? " (지역 중앙값 절반 미만)" : ""} · 바우처 잔액 {fmtWon(v.h.voucherLeft)}
+        {v.params.k < REGION_MEDIAN_K / 2 ? " (가정한 지역 중앙값의 절반 미만)" : ""} · 바우처 잔액 {fmtWon(v.h.voucherLeft)}
         {demo && (
           <>
             {" · "}
@@ -320,8 +330,12 @@ function EmdMap({ rows }: { rows: Row[] }) {
   );
 }
 
+const MIN_HOMES = 10; // 에너지 정책 표에 넣는 읍면의 최소 등록 가구 수
+
 function EnergyTab({ rows }: { rows: Row[] }) {
-  const sorted = [...rows].filter((r) => r.list.length).sort((a, b) => b.winterCost / b.list.length - a.winterCost / a.list.length);
+  // 등록 가구가 적은 읍면은 몇 집의 값에 평균이 흔들려 순위에 넣지 않는다(전에는 가상 가구 4곳인 읍이 맨 위에 왔다)
+  const few = rows.filter((r) => r.list.length > 0 && r.list.length < MIN_HOMES);
+  const sorted = rows.filter((r) => r.list.length >= MIN_HOMES).sort((a, b) => b.winterCost / b.list.length - a.winterCost / a.list.length);
   return (
     <section className="card overflow-x-auto p-5">
       <h2 className="sec-title">도시가스·LPG 배관 우선 마을 근거</h2>
@@ -340,20 +354,23 @@ function EnergyTab({ rows }: { rows: Row[] }) {
             <th className="text-right">65세 이상</th>
           </tr>
         </thead>
-        <tbody className="num">
+        <tbody className="num whitespace-nowrap">
           {sorted.map((r) => (
             <tr key={r.e.name}>
               <td className="font-medium">{r.e.name}</td>
               <td className="text-right">{r.list.length}</td>
               <td className="text-right">{fmtL(r.winterL)}</td>
-              <td className="text-right">{fmtWon(r.winterCost)}</td>
-              <td className="text-right font-bold">{fmtWon(r.winterCost / r.list.length)}</td>
+              <td className="text-right">{fmtMan(r.winterCost)}</td>
+              <td className="text-right font-bold">{fmtMan(r.winterCost / r.list.length)}</td>
               <td className="text-right">{r.e.elderly.toLocaleString()}</td>
             </tr>
           ))}
         </tbody>
       </table>
-      <p className="mt-2 text-xs text-muted">실제 운영에서는 판매소가 입력한 배달량 합계를 씁니다. 지금 표는 모델 예측값입니다.</p>
+      <p className="mt-2 text-xs text-muted">
+        실제 운영에서는 판매소가 입력한 배달량 합계를 씁니다. 지금 표는 모델 예측값입니다.
+        {few.length > 0 && ` 등록 가구가 ${MIN_HOMES}곳 미만인 읍면 ${few.length}곳(${few.map((r) => r.e.name).join(", ")})은 평균이 흔들려 표에서 뺐습니다.`}
+      </p>
     </section>
   );
 }
