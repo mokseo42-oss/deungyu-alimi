@@ -1,6 +1,7 @@
 // 첫 화면 오른쪽 9초 반복 그림. 30초 소개 영상(선 그림, 흰 집과 탱크, 초록 점 말풍선)과 같은 그림체입니다.
 // heroFrame(t)는 t초의 그림을 <svg viewBox="0 0 1000 1000"> 안에 넣을 문자열로 돌려줍니다(같은 t면 같은 그림).
-// 칸 모양이 화면마다 달라 가운데(x 140~860, y 125~875)에 중요한 그림을 모았습니다.
+// 칸 모양이 화면마다 달라 가운데(x 160~840, y 125~875)에 중요한 그림을 모았습니다.
+// (1024px 노트북에서 칸은 약 480×704라 좌우가 x 159~841만 보입니다)
 //
 // 시간표(초)
 //   0.4~2.4  탱크 눈금이 네 칸에서 한 칸 아래로      1.7~6.6  "11월 23일쯤 바닥"
@@ -141,7 +142,7 @@ export function heroFrame(time: number): string {
     out += truck(x, t);
   }
 
-  out += bubble(t, 150, 200, ["어르신, 기름이 다음 주쯤", "떨어질 것 같아요."], {
+  out += bubble(t, 190, 200, ["어르신, 기름이 다음 주쯤", "떨어질 것 같아요."], {
     who: "ai",
     anchor: "start",
     start: 2.6,
@@ -149,7 +150,7 @@ export function heroFrame(time: number): string {
     out: 7.4,
     size: 46,
   });
-  out += bubble(t, 850, 400, ["그래, 시켜 줘."], { who: "elder", anchor: "end", start: 4.5, typeDur: 0.6, out: 7.5, size: 50 });
+  out += bubble(t, 820, 400, ["그래, 시켜 줘."], { who: "elder", anchor: "end", start: 4.5, typeDur: 0.6, out: 7.5, size: 50 });
   // 말풍선과 땅 사이가 가운데 오도록 조금 내린다
   return `<g transform="translate(0,20)">${out}</g>`;
 }
