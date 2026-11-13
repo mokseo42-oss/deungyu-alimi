@@ -46,6 +46,13 @@ export default function Home() {
           </p>
           <p>등유 안심은 기온과 배달 기록으로 집마다 기름이 떨어지는 날을 예측해, 그 전에 어르신께 먼저 연락합니다.</p>
         </div>
+        {/* 소개 영상: 누르기 전에는 내려받지 않는다(preload="none"). 만든 과정은 '11월 미션/등유 안심/소개영상' 폴더 */}
+        <figure className="md:col-span-2">
+          <video className="aspect-video w-full bg-night" controls preload="none" playsInline poster="/intro-poster.jpg">
+            <source src="/intro.mp4" type="video/mp4" />
+          </video>
+          <figcaption className="mt-3 text-[15px] text-muted">서비스 소개 영상 · 31초 · 소리를 켜고 보세요</figcaption>
+        </figure>
       </section>
 
       <section id="facts" className="wrap pb-20 md:pb-36">
