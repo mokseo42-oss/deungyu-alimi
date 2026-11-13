@@ -300,8 +300,15 @@
     object-fit: cover;
     object-position: 62% 60%;
   }
-  /* 사진 아래쪽을 살짝 어둡게 해 캡션을 읽히게 */
-  .hero-figure::after {
+  /* 반복 그림(HeroLoop)은 칸을 꽉 채우고, 칸 모양이 달라지면 가장자리만 잘린다 */
+  .hero-loop {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+  }
+  /* 사진 아래쪽을 살짝 어둡게 해 캡션을 읽히게 (사진일 때만) */
+  .hero-figure:has(.hero-photo)::after {
     content: "";
     position: absolute;
     inset: auto 0 0 0;
