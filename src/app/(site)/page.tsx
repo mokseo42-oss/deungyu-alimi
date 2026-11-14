@@ -1,6 +1,6 @@
 import Link from "next/link";
 import Evidence from "@/components/Evidence";
-import HeroLoop from "@/components/HeroLoop";
+import HeroPhone from "@/components/HeroPhone";
 import ScreenTour from "@/components/ScreenTour";
 import { APP_HOME, APP_NAME } from "@/lib/routes";
 
@@ -17,7 +17,7 @@ export default function Home() {
       <section className="hero">
         <div className="hero-grid">
           <figure className="hero-figure">
-            <HeroLoop />
+            <HeroPhone />
           </figure>
           <div className="hero-copy">
             <h1 className="hero-title">
