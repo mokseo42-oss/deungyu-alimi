@@ -7,6 +7,7 @@ import { useHouseholds, View, suggestLiters } from "@/lib/useModel";
 import { fmtDate, fmtL, fmtWon, gaugeLow, keepLowK, learnK, project } from "@/lib/model";
 import { REGION_MEDIAN_K } from "@/data/households";
 import { CONFUSED_SAMPLE, Intent, QUICK, REASK, Stage, faqTopic, understand } from "@/lib/dialog";
+import { DELIVERED, Note, stampAt } from "@/lib/notify";
 import { addElder, addFamily, addLog, nowISO, uid, update, useStore } from "@/lib/store";
 import { STATIONS_AS_OF, cheapestIn, useStations } from "@/lib/stations";
 
@@ -121,6 +122,9 @@ function CallSim({ v: live, today }: { v: View; today: string }) {
     endRef.current?.scrollIntoView({ behavior: "smooth", block: "nearest" });
   }, [msgs]);
 
+  // 알림이 생기는 시각: 이 통화의 시각(AI가 거는 전화는 오전 10시, 어르신이 거는 전화는 지금)
+  const now = () => stampAt(today, hour, hour === 10 && !inbound ? 0 : new Date().getMinutes());
+
   const ai = (raw: string) => {
     const text = leadRef.current ? `${leadRef.current} ${raw}` : raw;
     leadRef.current = null;
@@ -193,11 +197,11 @@ function CallSim({ v: live, today }: { v: View; today: string }) {
     sys("전화를 받지 않으셨습니다. 3시간 뒤 다시 걸었지만 받지 않으셨습니다.");
     sys(`두 번 연속 무응답 → ${h.family ?? "가족 없음"}과 생활지원사에게 알림`);
     addLog(h.id, "안부 확인 필요", "AI 전화 두 번 무응답");
-    if (h.family) addFamily(h.id, `[등유 안심] 오늘 부모님(${h.label})께 두 번 전화드렸지만 받지 않으셨어요. 안부 확인 부탁드려요.`);
+    if (h.family) addFamily(h.id, `[등유 안심] 오늘 부모님(${h.label})께 두 번 전화드렸지만 받지 않으셨어요. 안부 확인 부탁드려요.`, { kind: "무응답", cat: "긴급", at: stampAt(today, 13) });
     // 전화를 못 받으셔도 어르신이 직접 알 수 있게 문자로도 남긴다
     const p = live.proj;
     const when = p.emptyDate && p.emptyDate <= today ? "거의 다 떨어졌을 것 같아요" : `${fmtDate(p.emptyDate)}쯤 떨어질 것 같아요`;
-    addElder(h.id, `[등유 안심] 어르신, 보일러 기름이 ${when}. 기름을 넣으시려면 이 번호로 전화 주세요.`);
+    addElder(h.id, `[등유 안심] 어르신, 보일러 기름이 ${when}. 기름을 넣으시려면 이 번호로 전화 주세요.`, { kind: "소진 예상", cat: "안내", at: stampAt(today, 13) });
     sys(phone ? "어르신 휴대폰에도 문자로 알림" : "AI 스피커가 알림 말을 남겨 둠");
     update((st) => ({ ...st, checks: { ...st.checks, [h.id]: st.checks[h.id] ?? "요청" } }));
     setStage("done");
@@ -207,7 +211,7 @@ function CallSim({ v: live, today }: { v: View; today: string }) {
     ai(`제가 잘 이해하지 못했어요. 주문은 넣지 않고, ${who}께 확인을 부탁드릴게요. 좋은 하루 보내세요.`);
     sys("대화가 맞지 않음 → 주문하지 않음. 가족·생활지원사에게 넘김");
     addLog(h.id, "확인 필요", "대화가 맞지 않아 주문하지 않음");
-    if (h.family) addFamily(h.id, `[등유 안심] 부모님(${h.label})과 통화했는데 대화가 잘 이어지지 않았어요. 한번 연락해 봐 주세요. 주문은 넣지 않았습니다.`);
+    if (h.family) addFamily(h.id, `[등유 안심] 부모님(${h.label})과 통화했는데 대화가 잘 이어지지 않았어요. 한번 연락해 봐 주세요. 주문은 넣지 않았습니다.`, { kind: "대화 확인", cat: "안내", at: now() });
     setStage("done");
   }
 
@@ -224,7 +228,7 @@ function CallSim({ v: live, today }: { v: View; today: string }) {
     ai(`많이 편찮으시면 지금 바로 119에 전화하세요. 주문 이야기는 여기서 멈출게요. ${h.family ? `${who}과 생활지원사 선생님께` : "생활지원사 선생님께"} 바로 알릴게요.`);
     sys(`몸이 안 좋다고 하심 → 주문 대화를 멈춤. ${h.family ? "가족과 생활지원사" : "생활지원사"}에게 바로 알림`);
     addLog(h.id, "안부 확인 필요", "통화 중 몸이 안 좋다고 하심 · 119 안내");
-    if (h.family) addFamily(h.id, `[등유 안심] 방금 부모님(${h.label})께서 통화 중에 몸이 안 좋다고 하셨어요. 바로 연락해 봐 주세요. 급하면 119에 전화하시라고 안내드렸습니다.`);
+    if (h.family) addFamily(h.id, `[등유 안심] 방금 부모님(${h.label})께서 통화 중에 몸이 안 좋다고 하셨어요. 바로 연락해 봐 주세요. 급하면 119에 전화하시라고 안내드렸습니다.`, { kind: "몸이 안 좋음", cat: "긴급", at: now() });
     update((st) => ({ ...st, checks: { ...st.checks, [h.id]: "요청" } }));
     setStage("done");
   }
@@ -235,7 +239,7 @@ function CallSim({ v: live, today }: { v: View; today: string }) {
     ai(`보일러가 안 켜지는군요. 주문 이야기는 여기서 멈출게요.${empty} ${dealer}에 봐 달라고 전하고, ${who}께도 알릴게요.`);
     sys(`보일러가 켜지지 않음 → 주문 대화를 멈춤. 판매소와 ${h.family ? "가족" : "생활지원사"}에게 알림`);
     addLog(h.id, "확인 필요", `보일러가 켜지지 않는다고 하심 · ${h.dealer}에 전달`);
-    if (h.family) addFamily(h.id, `[등유 안심] 부모님(${h.label})께서 보일러가 켜지지 않는다고 하셨어요. ${dealer}에 봐 달라고 전했습니다. 한번 연락해 봐 주세요.`);
+    if (h.family) addFamily(h.id, `[등유 안심] 부모님(${h.label})께서 보일러가 켜지지 않는다고 하셨어요. ${dealer}에 봐 달라고 전했습니다. 한번 연락해 봐 주세요.`, { kind: "보일러", cat: "긴급", at: now() });
     setStage("done");
   }
 
@@ -258,7 +262,7 @@ function CallSim({ v: live, today }: { v: View; today: string }) {
     ai(`그러실 수 있어요. 주문은 넣지 않을게요.${back}${h.family ? ` ${who}께도 오늘 연락드렸다고 알려 둘게요.` : ""}`);
     sys(`전화를 믿기 어려워하심 → 주문하지 않음${h.family ? ". 가족에게 알림" : ""}`);
     addLog(h.id, "확인 필요", "AI 전화를 믿기 어려워하심 · 주문하지 않음");
-    if (h.family) addFamily(h.id, `[등유 안심] 오늘 부모님(${h.label})께 연락드렸는데 전화를 믿기 어려워하셨어요. 등유 안심이 맞다고 한번 말씀해 주세요. 주문은 넣지 않았습니다.`);
+    if (h.family) addFamily(h.id, `[등유 안심] 오늘 부모님(${h.label})께 연락드렸는데 전화를 믿기 어려워하셨어요. 등유 안심이 맞다고 한번 말씀해 주세요. 주문은 넣지 않았습니다.`, { kind: "전화 의심", cat: "안내", at: now() });
     setStage("done");
   }
 
@@ -329,13 +333,13 @@ function CallSim({ v: live, today }: { v: View; today: string }) {
       addFamily(
         h.id,
         `[등유 안심] 부모님(${h.label})께서 등유 ${liters}L(${fmtWon(liters * v.price)}) 주문을 원하세요. 승인하시면 ${dealer}에 전달됩니다.`,
-        id,
+        { kind: "승인 요청", cat: "확인", orderId: id, at: now() },
       );
-      addElder(h.id, `[등유 안심] 등유 ${liters}L 주문을 받았어요. ${who}께서 확인하시면 ${dealer}에 들어가요.`, id);
+      addElder(h.id, `[등유 안심] 등유 ${liters}L 주문을 받았어요. ${who}께서 확인하시면 ${dealer}에 들어가요.`, { kind: "주문", cat: "확인", orderId: id, at: now() });
       ai(`${who}께 승인 요청을 보냈어요. 승인되면 ${confirmCall}. ${pay}`);
     } else {
-      if (h.family) addFamily(h.id, `[등유 안심] 오늘 부모님 댁 등유 ${liters}L 주문, 1~3일 안에 배달 예정입니다. (${dealer})`, id);
-      addElder(h.id, `[등유 안심] 등유 ${liters}L 주문했어요. ${dealer}에서 1~3일 안에 갖다 드려요. 값은 배달 올 때 내시면 돼요.`, id);
+      if (h.family) addFamily(h.id, `[등유 안심] 오늘 부모님 댁 등유 ${liters}L 주문, 1~3일 안에 배달 예정입니다. (${dealer})`, { kind: "주문", cat: "확인", orderId: id, at: now() });
+      addElder(h.id, `[등유 안심] 등유 ${liters}L 주문했어요. ${dealer}에서 1~3일 안에 갖다 드려요. 값은 배달 올 때 내시면 돼요.`, { kind: "주문", cat: "확인", orderId: id, at: now() });
       ai(`${liters}리터 주문 ${night ? "받았습니다. 지금은 판매소가 문을 닫은 시간이라 " : "넣었습니다. "}${confirmCall}. ${pay}`);
     }
     sys(needFamily ? "주문 → 가족 승인 대기 (카카오톡)" : night ? "주문 → 판매소 화면으로 전달 (실제로는 내일 아침에 들어감)" : "주문 → 판매소 화면으로 전달");
@@ -609,8 +613,10 @@ function CallSim({ v: live, today }: { v: View; today: string }) {
   }
 
   const quick = QUICK[stage] ?? [];
-  const famMsgs = s.family.filter((f) => f.hid === h.id);
-  const elderMsgs = (s.elder ?? []).filter((f) => f.hid === h.id);
+  // 휴대폰 칸에는 실제로 가는 알림만(안 보낸 알림은 알림 탭에서 이유와 함께 본다)
+  const sentTo = (list: Note[]) => list.filter((f) => f.hid === h.id && (!f.status || DELIVERED.includes(f.status)));
+  const famMsgs = sentTo(s.family);
+  const elderMsgs = sentTo(s.elder ?? []);
   const logs = s.logs.filter((l) => l.hid === h.id).slice(0, 6);
 
   return (
@@ -769,6 +775,7 @@ function CallSim({ v: live, today }: { v: View; today: string }) {
             {elderMsgs.map((f) => (
               <p key={f.id} className="rounded-xl bg-white p-3 text-[16px] font-medium leading-relaxed">
                 {f.text}
+                <Arrival f={f} />
               </p>
             ))}
           </div>
@@ -783,6 +790,7 @@ function CallSim({ v: live, today }: { v: View; today: string }) {
               return (
                 <div key={f.id} className="rounded-xl bg-white p-2.5 text-[13px] leading-snug">
                   {f.text}
+                  <Arrival f={f} />
                   {o?.status === "가족 승인 대기" && (
                     <div className="mt-2 flex gap-1">
                       <button
@@ -790,7 +798,7 @@ function CallSim({ v: live, today }: { v: View; today: string }) {
                         onClick={() => {
                           update((st) => ({ ...st, orders: st.orders.map((x) => (x.id === o.id ? { ...x, status: "접수" } : x)) }));
                           addLog(h.id, "주문", `가족 승인 완료 · ${o.liters}L`);
-                          addElder(h.id, `[등유 안심] ${who}께서 확인하셨어요. 등유 ${o.liters}L, ${dealer}에서 1~3일 안에 갖다 드려요.`, o.id);
+                          addElder(h.id, `[등유 안심] ${who}께서 확인하셨어요. 등유 ${o.liters}L, ${dealer}에서 1~3일 안에 갖다 드려요.`, { kind: "가족 승인", cat: "확인", orderId: o.id, at: now() });
                         }}
                       >
                         승인
@@ -835,5 +843,15 @@ function Pair({ k, v }: { k: string; v: string }) {
       <dt className="text-muted">{k}</dt>
       <dd className="font-semibold">{v}</dd>
     </div>
+  );
+}
+
+// 밤이라 아침으로 미룬 알림은 언제 도착하는지 붙여 보여 준다
+function Arrival({ f }: { f: Note }) {
+  if (f.status !== "아침에 보냄" || !f.sendAt) return null;
+  return (
+    <span className="mt-1 block text-[12px] font-normal text-muted">
+      밤이라 {Number(f.sendAt.slice(5, 7))}월 {Number(f.sendAt.slice(8, 10))}일 아침 8시에 도착
+    </span>
   );
 }

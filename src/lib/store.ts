@@ -2,6 +2,7 @@
 // 시연용 상태 저장소. 브라우저 localStorage에만 저장되고 서버로 가지 않는다.
 // 같은 브라우저의 다른 탭(AI 전화 ↔ 판매소 ↔ 현황판)과 실시간으로 맞춰진다.
 import { useSyncExternalStore } from "react";
+import { Note, NoteCat, decideSend, kstStamp } from "./notify";
 
 export type OrderStatus = "가족 승인 대기" | "접수" | "판매소 확인" | "배달 완료" | "취소";
 
@@ -21,7 +22,7 @@ export type LogKind = "주문" | "잔량 보정" | "참는 집 후보" | "확인
 
 export type Log = { id: string; hid: string; at: string; kind: LogKind; text: string };
 
-export type FamilyMsg = { id: string; hid: string; at: string; text: string; orderId?: string };
+export type FamilyMsg = Note;
 
 export type State = {
   orders: Order[];
@@ -107,13 +108,26 @@ export function addLog(hid: string, kind: LogKind, text: string) {
   update((s) => ({ ...s, logs: [{ id: uid(), hid, at: nowISO(), kind, text }, ...s.logs].slice(0, 200) }));
 }
 
-export function addFamily(hid: string, text: string, orderId?: string) {
-  update((s) => ({ ...s, family: [{ id: uid(), hid, at: nowISO(), text, orderId }, ...s.family].slice(0, 100) }));
+// 알림을 만들 때 발송 규칙(lib/notify)을 거쳐 상태(보냄, 아침에 보냄, 안 보냄)를 함께 적는다
+type NoteOpts = { kind: string; cat: NoteCat; orderId?: string; at?: string };
+
+function addNote(list: "family" | "elder", hid: string, text: string, o: NoteOpts) {
+  update((s) => {
+    const prev = (s[list] ?? []) as Note[];
+    const at = o.at ?? kstStamp();
+    const d = decideSend({ hid, at, kind: o.kind, cat: o.cat, orderId: o.orderId }, prev);
+    const note: Note = { id: uid(), hid, at, text, orderId: o.orderId, kind: o.kind, cat: o.cat, ...d };
+    return { ...s, [list]: [note, ...prev].slice(0, 100) };
+  });
+}
+
+export function addFamily(hid: string, text: string, o: NoteOpts) {
+  addNote("family", hid, text, o);
 }
 
 // 어르신께 보내는 알림. 전화를 못 받으셨거나 통화 내용을 잊으셔도 다시 볼 수 있게 짧고 큰 글씨로
-export function addElder(hid: string, text: string, orderId?: string) {
-  update((s) => ({ ...s, elder: [{ id: uid(), hid, at: nowISO(), text, orderId }, ...(s.elder ?? [])].slice(0, 100) }));
+export function addElder(hid: string, text: string, o: NoteOpts) {
+  addNote("elder", hid, text, o);
 }
 
 export const openOrder = (s: State, hid: string) =>

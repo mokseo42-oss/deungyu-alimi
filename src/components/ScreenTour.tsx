@@ -7,7 +7,7 @@ import { daysBetween, fmtDate, fmtL, fmtWon } from "@/lib/model";
 import { SCREENS } from "@/lib/routes";
 import { View, suggestLiters, useHouseholds } from "@/lib/useModel";
 
-const STEPS = SCREENS;
+const STEPS = SCREENS.slice(0, 4); // 둘러보기 휴대폰 그림은 네 화면만 있다(알림 탭은 빠짐)
 
 const PIN_QUERY = "(min-width: 1024px) and (min-height: 640px)";
 

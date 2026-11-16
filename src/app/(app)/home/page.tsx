@@ -47,7 +47,7 @@ export default function AppHome() {
         <p className="mt-2 max-w-3xl text-[15px] leading-relaxed text-muted">
           처음이라면 왼쪽부터 차례로 보세요. AI 전화에서 넣은 주문이 판매소에 뜨고, 배달을 마치면 가구 잔량과 군 현황판이 바뀝니다.
         </p>
-        <ul className="mt-8 grid gap-y-10 sm:grid-cols-2 lg:grid-cols-4">
+        <ul className="mt-8 grid gap-y-10 sm:grid-cols-2 lg:grid-cols-3">
           {SCREENS.map((s) => (
             <li key={s.href} className="border-l border-line">
               <Link href={s.href} className="group block h-full py-1 pl-5 pr-5 hover:bg-mist md:pl-6">
