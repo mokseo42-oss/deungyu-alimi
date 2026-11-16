@@ -5,7 +5,8 @@ import { APP_HOME, APP_NAME } from "@/lib/routes";
 
 const SECTIONS = [
   { href: "#about", label: "소개" },
-  { href: "#facts", label: "울주군 현황" },
+  { href: "#facts", label: "등유 가구" },
+  { href: "#who", label: "누구를 위한" },
   { href: "#model", label: "예측 모델" },
   { href: "#evidence", label: "검증 결과" },
   { href: "#screens", label: "화면 구성" },

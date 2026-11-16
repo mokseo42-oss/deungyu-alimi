@@ -412,6 +412,172 @@
     background: linear-gradient(180deg, rgba(0, 0, 0, 0), rgba(0, 0, 0, 0.38));
     pointer-events: none;
   }
+  /* 기능 화면 틀: 소개 페이지와 다르게 검은 윗줄, 회색 작업 바탕, 둥근 흰 카드 */
+  .app-shell {
+    min-height: 100vh;
+    background: var(--mist);
+  }
+  .app-bar {
+    background: #000000;
+    color: #ffffff;
+  }
+  .app-badge {
+    padding: 1px 8px;
+    border-radius: 99px;
+    background: var(--fuel);
+    color: #ffffff;
+    font-size: 12px;
+    font-weight: 600;
+    line-height: 20px;
+  }
+  .app-tab {
+    display: flex;
+    align-items: center;
+    padding: 0 14px;
+    font-size: 15px;
+    font-weight: 500;
+    color: var(--night-muted);
+    border-bottom: 2px solid transparent;
+    transition: color 0.15s;
+  }
+  .app-tab:hover {
+    color: #ffffff;
+  }
+  .app-tab[aria-current="page"] {
+    color: #ffffff;
+    border-bottom-color: var(--fuel);
+  }
+  .app-shell .card {
+    border-radius: 12px;
+    border-color: transparent;
+    box-shadow: 0 1px 2px rgba(16, 24, 40, 0.06);
+  }
+  .app-shell .btn,
+  .app-shell input.inp,
+  .app-shell select.inp {
+    border-radius: 8px;
+  }
+
+  /* 첫 화면 이야기 카드(HeroStory): 사진 위에 세 카드가 차례로 뜬다.
+     기름이 곧 바닥 → AI가 먼저 전화 → 자녀에게 알림 */
+  @media (max-width: 1023.98px) {
+    .hero-figure:has(.story) {
+      aspect-ratio: 4 / 5;
+      max-height: 78vh;
+    }
+  }
+  .story {
+    position: absolute;
+    z-index: 1;
+    inset: 16px 16px 44px;
+    display: flex;
+    flex-direction: column;
+    justify-content: flex-end;
+    gap: 10px;
+    pointer-events: none;
+  }
+  .story-card {
+    width: min(100%, 380px);
+    padding: 14px 16px;
+    border-radius: 14px;
+    background: rgba(255, 255, 255, 0.94);
+    box-shadow: 0 12px 32px -12px rgba(0, 0, 0, 0.45);
+    backdrop-filter: blur(6px);
+    animation: story-in 0.6s cubic-bezier(0.2, 0.7, 0.2, 1) both;
+  }
+  .story-call {
+    align-self: flex-end;
+    animation-delay: 1.2s;
+  }
+  .story-family {
+    animation-delay: 2.4s;
+  }
+  @keyframes story-in {
+    from {
+      opacity: 0;
+      transform: translateY(12px);
+    }
+  }
+  .story-who {
+    font-size: 13px;
+    font-weight: 500;
+    color: var(--muted);
+  }
+  .story-big {
+    margin-top: 4px;
+    font-size: 21px;
+    font-weight: 600;
+    line-height: 1.35;
+    letter-spacing: -0.02em;
+  }
+  .story-gauge {
+    margin-top: 10px;
+    height: 8px;
+    border-radius: 99px;
+    background: #ece7e1;
+    overflow: hidden;
+  }
+  .story-gauge i {
+    display: block;
+    height: 100%;
+    border-radius: 99px;
+    background: var(--fuel);
+  }
+  .story-sub {
+    margin-top: 8px;
+    font-size: 14px;
+    color: var(--muted);
+  }
+  .story-bubble {
+    margin-top: 8px;
+    padding: 9px 12px;
+    font-size: 15px;
+    line-height: 1.5;
+    border-radius: 12px;
+  }
+  .story-ai {
+    background: #f3f4f8;
+    border-top-left-radius: 4px;
+  }
+  .story-me {
+    margin-left: auto;
+    width: fit-content;
+    background: #000000;
+    color: #ffffff;
+    border-top-right-radius: 4px;
+  }
+  .story-family {
+    background: #fee500;
+  }
+  .story-family .story-who {
+    color: rgba(25, 25, 25, 0.7);
+  }
+  .story-text {
+    margin-top: 4px;
+    font-size: 15px;
+    font-weight: 500;
+    color: #191919;
+  }
+  /* 좁은 칸(휴대폰)에서는 카드 글씨를 줄이고 자녀 알림은 뺀다 */
+  @media (max-width: 639.98px) {
+    .story {
+      inset: 12px 12px 40px;
+      gap: 8px;
+    }
+    .story-card {
+      padding: 11px 13px;
+    }
+    .story-big {
+      font-size: 18px;
+    }
+    .story-bubble,
+    .story-text {
+      font-size: 14px;
+    }
+    .story-family {
+      display: none;
+    }
+  }
   .hero-caption {
     position: absolute;
     z-index: 1;
@@ -576,4 +742,7 @@
   .sight-fill,
   .tour-step {
     transition: none;
+  }
+  .story-card {
+    animation: none;
   }}
