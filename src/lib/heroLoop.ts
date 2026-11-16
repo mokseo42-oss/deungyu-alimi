@@ -5,7 +5,7 @@
 //
 // 시간표(초)
 //   0.4~2.4  탱크 눈금이 네 칸에서 한 칸 아래로      1.7~6.6  "11월 23일쯤 바닥"
-//   2.6~4.2  등유 안심 AI 말풍선                    4.5~5.1  어르신 대답
+//   2.6~4.2  등유 알리미 AI 말풍선                    4.5~5.1  어르신 대답
 //   5.5~6.2  유조차가 들어옴, 6.4~7.3 눈금이 다시 참   7.4~8.4  말풍선·유조차가 빠짐
 //   8.4~9.0  처음 그림과 같음(이음매 없음)
 
@@ -111,7 +111,7 @@ function bubble(t: number, x: number, y: number, lines: string[], b: Bubble) {
     s += `<circle cx="${dotX}" cy="${y - 10}" r="${f1(11 + ph * 20)}" fill="none" stroke="${col}" stroke-width="3" opacity="${f1(1 - ph)}"/>`;
   }
   const lx = b.anchor === "start" ? x + 36 : x - 36;
-  s += text(lx, y, ai ? "등유 안심 AI" : "어르신", 28, col, { anchor: b.anchor, weight: 700 });
+  s += text(lx, y, ai ? "등유 알리미 AI" : "어르신", 28, col, { anchor: b.anchor, weight: 700 });
   let used = 0;
   lines.forEach((ln, i) => {
     const k = clamp(shown - used, 0, ln.length);

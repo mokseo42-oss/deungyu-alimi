@@ -9,7 +9,7 @@ export default function SiteLayout({ children }: { children: React.ReactNode }) 
       <footer className="border-t border-line bg-stone text-ink">
         <div className="wrap flex flex-col gap-10 py-16 md:flex-row md:justify-between">
           <div>
-            <div className="text-[22px] font-bold tracking-tight">등유 안심</div>
+            <div className="text-[22px] font-bold tracking-tight">등유 알리미</div>
             <ul className="mt-4 space-y-1 text-sm font-light">
               <li>팀 유일무이</li>
               <li>한국석유공사 AI·데이터 서포터즈</li>

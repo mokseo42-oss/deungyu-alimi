@@ -21,7 +21,7 @@ test("처음 그림에는 말풍선이 없다", () => {
 
 test("멈춘 그림에 예상 소진일, AI 말, 어르신 대답이 다 보인다", () => {
   const s = heroFrame(STILL);
-  for (const words of ["11월 23일쯤 바닥", "등유 안심 AI", "어르신, 기름이", "떨어질 것 같아요.", "그래, 시켜 줘."]) {
+  for (const words of ["11월 23일쯤 바닥", "등유 알리미 AI", "어르신, 기름이", "떨어질 것 같아요.", "그래, 시켜 줘."]) {
     assert.ok(s.includes(words), `${words}가 없음`);
   }
 });

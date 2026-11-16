@@ -24,6 +24,7 @@ type Live = {
   asOf?: string;
   reason?: string;
   average?: { price: number; diff: number } | null;
+  national?: { price: number; diff: number } | null;
   stations?: Station[];
 };
 
@@ -41,13 +42,14 @@ export type StationsView = {
   asOf: string;
   liveCount: number;
   average: { price: number; diff: number } | null;
+  national: { price: number; diff: number } | null;
   reason?: string;
 };
 
 // 오피넷 실시간(최저가 20곳)으로 저장 자료를 덮어쓴다. 실시간에 없는 곳은 저장 자료 가격을 유지
 export function mergeStations(l: Live | null): StationsView {
   if (!l?.live || !l.stations) {
-    return { stations: STATIONS, live: false, asOf: STATIONS_AS_OF, liveCount: 0, average: null, reason: l?.reason };
+    return { stations: STATIONS, live: false, asOf: STATIONS_AS_OF, liveCount: 0, average: null, national: null, reason: l?.reason };
   }
   const map = new Map(STATIONS.map((s) => [s.id, { ...s }]));
   for (const s of l.stations) {
@@ -55,7 +57,7 @@ export function mergeStations(l: Live | null): StationsView {
     map.set(s.id, { ...(old ?? s), kerosene: s.kerosene, emd: old?.emd || s.emd, live: true });
   }
   const stations = [...map.values()].filter((s) => s.emd).sort((a, b) => a.kerosene - b.kerosene);
-  return { stations, live: true, asOf: l.asOf ?? "", liveCount: l.stations.length, average: l.average ?? null };
+  return { stations, live: true, asOf: l.asOf ?? "", liveCount: l.stations.length, average: l.average ?? null, national: l.national ?? null };
 }
 
 export function useStations(): StationsView {

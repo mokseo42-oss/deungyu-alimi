@@ -1,7 +1,7 @@
 // 소개 페이지에서 실제 기능 화면으로 들어가는 첫 화면
 export const APP_HOME = "/home";
 // 서비스 이름. 화면의 버튼과 안내 문구가 모두 이 값을 쓴다(다른 서비스와 합칠 때는 여기만 바꾸면 된다)
-export const APP_NAME = "등유 안심";
+export const APP_NAME = "등유 알리미";
 
 // 기능 화면 넷. 소개 페이지 둘러보기와 홈이 함께 쓴다
 export const SCREENS = [

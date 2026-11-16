@@ -4,7 +4,8 @@ import { Loading, StatusBadge } from "@/components/ui";
 import { fmtDate } from "@/lib/model";
 import { DELIVERED, Note, OPT_OUT, SEND_RULES } from "@/lib/notify";
 import { useHouseholds, View } from "@/lib/useModel";
-import { useStore } from "@/lib/store";
+import { removePriceRule, useStore } from "@/lib/store";
+import { cheapestIn, useStations } from "@/lib/stations";
 
 // 알림 탭: 어르신 문자, 가족 알림톡이 언제 어떤 문구로 가는지 미리 보고, 보낸 알림과 안 보낸 이유를 본다.
 // 기름알리미 '알림' 탭과 같은 발송 규칙(lib/notify)을 쓴다. 실제 발송은 하지 않는다.
@@ -28,6 +29,7 @@ const short = (stamp?: string) =>
 export default function AlertsPage() {
   const { weather, error, views } = useHouseholds();
   const s = useStore();
+  const st = useStations();
   if (!views || !weather) return <Loading error={error} />;
 
   const labelOf = (hid: string) => views.find((v) => v.h.id === hid)?.h.label ?? hid;
@@ -54,6 +56,44 @@ export default function AlertsPage() {
             <Upcoming key={v.h.id} v={v} today={weather.today} />
           ))}
         </ul>
+      </section>
+
+      <section className="card p-6">
+        <h2 className="sec-title">가격 조건</h2>
+        <p className="mt-1 text-[14px] text-muted">
+          홈에서 &ldquo;1,500원 밑으로 내려가면 알려 줘&rdquo;처럼 말하면 조건이 생깁니다. 최대 5개. 지금 점검은 오피넷{" "}
+          {st.live ? `${st.asOf} 실시간` : `${st.asOf} 저장 자료`} 최저가로 확인합니다.
+        </p>
+        {(s.priceRules ?? []).length === 0 ? (
+          <p className="mt-3 text-[15px]">
+            아직 없습니다.{" "}
+            <Link href="/home" className="underline underline-offset-4">
+              홈에서 말로 걸기
+            </Link>
+          </p>
+        ) : (
+          <ul className="mt-3 divide-y divide-line">
+            {(s.priceRules ?? []).map((r) => {
+              const low = cheapestIn(st.stations, r.emd);
+              const hit = low && low.kerosene < r.price;
+              return (
+                <li key={r.id} className="flex flex-wrap items-center gap-x-4 gap-y-1 py-3 text-[15px]">
+                  <span className="font-medium">
+                    {r.emd} 등유가 리터에 {r.price.toLocaleString("ko-KR")}원 밑이면
+                  </span>
+                  <span className={hit ? "font-semibold text-ok" : "text-muted"}>
+                    {low
+                      ? `지금 최저 ${low.name} ${low.kerosene.toLocaleString("ko-KR")}원 → ${hit ? "조건에 닿음, 아침 8시~밤 9시 사이에 알림" : "아직 아님"}`
+                      : "이 읍면에는 등유 가격이 있는 주유소가 없음"}
+                  </span>
+                  <button className="ml-auto text-[13px] text-muted underline underline-offset-4" onClick={() => removePriceRule(r.id)}>
+                    지우기
+                  </button>
+                </li>
+              );
+            })}
+          </ul>
+        )}
       </section>
 
       <div className="grid gap-6 lg:grid-cols-[minmax(0,3fr)_minmax(0,2fr)]">
@@ -151,7 +191,7 @@ function Upcoming({ v, today }: { v: View; today: string }) {
   if (status === "ordered") {
     when = "배달을 마치면";
     what = `${sms}${h.family ? " · 가족 알림톡" : ""} (확인)`;
-    preview = "[등유 안심] 등유를 넣어 드렸어요. 따뜻하게 지내세요.";
+    preview = "[등유 알리미] 등유를 넣어 드렸어요. 따뜻하게 지내세요.";
   } else if (status === "check") {
     when = "지금";
     what = "생활지원사 '살펴봐 주세요'";
@@ -161,7 +201,7 @@ function Upcoming({ v, today }: { v: View; today: string }) {
     // 알림일이 이미 지났으면(아직 전화를 안 한 시연 상태) 오늘 건다
     when = `${proj.alertDate <= today ? "오늘" : fmtDate(proj.alertDate)} 오전 10시`;
     what = `AI ${h.channel === "AI 스피커" ? "스피커 안내" : "전화"} → 못 받으시면 오후 1시 ${sms}${h.family ? " · 가족 알림톡" : ""} (안내)`;
-    preview = `[등유 안심] 어르신, 보일러 기름이 ${fmtDate(proj.emptyDate)}쯤 떨어질 것 같아요. 기름을 넣으시려면 이 번호로 전화 주세요.`;
+    preview = `[등유 알리미] 어르신, 보일러 기름이 ${fmtDate(proj.emptyDate)}쯤 떨어질 것 같아요. 기름을 넣으시려면 이 번호로 전화 주세요.`;
   } else {
     when = "당분간 없음";
     what = "이번 겨울 안에 떨어질 일이 없어 보입니다";

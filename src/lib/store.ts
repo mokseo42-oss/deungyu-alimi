@@ -24,6 +24,9 @@ export type Log = { id: string; hid: string; at: string; kind: LogKind; text: st
 
 export type FamilyMsg = Note;
 
+// "1,500원 밑으로 내려가면 알려 줘": 그 읍면 등유 최저가가 price 밑이면 알림
+export type PriceRule = { id: string; emd: string; price: number; at: string };
+
 export type State = {
   orders: Order[];
   deliveries: Record<string, { date: string; litersAfter: number }>;
@@ -32,6 +35,7 @@ export type State = {
   logs: Log[];
   family: FamilyMsg[];
   elder: FamilyMsg[]; // 어르신 본인이 받는 알림(문자, AI 스피커 알림 말)
+  priceRules: PriceRule[]; // 챗봇에서 건 가격 알림 조건
   checks: Record<string, "요청" | "방문 배정" | "해결">;
   dealerPrices: Record<string, number>;
 };
@@ -45,6 +49,7 @@ const EMPTY: State = {
   logs: [],
   family: [],
   elder: [],
+  priceRules: [],
   checks: {},
   dealerPrices: {},
 };
@@ -132,3 +137,15 @@ export function addElder(hid: string, text: string, o: NoteOpts) {
 
 export const openOrder = (s: State, hid: string) =>
   s.orders.find((o) => o.hid === hid && o.status !== "배달 완료" && o.status !== "취소");
+
+// 가격 알림 조건은 기름알리미처럼 최대 5개까지
+export function addPriceRule(emd: string, price: number) {
+  update((s) => {
+    const list = (s.priceRules ?? []).filter((r) => !(r.emd === emd && r.price === price));
+    return { ...s, priceRules: [{ id: uid(), emd, price, at: nowISO() }, ...list].slice(0, 5) };
+  });
+}
+
+export function removePriceRule(id: string) {
+  update((s) => ({ ...s, priceRules: (s.priceRules ?? []).filter((r) => r.id !== id) }));
+}

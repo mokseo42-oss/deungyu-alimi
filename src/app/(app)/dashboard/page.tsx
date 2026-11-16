@@ -340,7 +340,7 @@ function EnergyTab({ rows }: { rows: Row[] }) {
     <section className="card overflow-x-auto p-5">
       <h2 className="sec-title">도시가스·LPG 배관 우선 마을 근거</h2>
       <p className="mt-1 max-w-3xl text-sm text-muted">
-        울주군은 2030년까지 도시가스와 마을 LPG 소형저장탱크로 1,000세대를 바꿀 계획입니다(100억 원). 등유 안심에 쌓이는 배달 기록으로
+        울주군은 2030년까지 도시가스와 마을 LPG 소형저장탱크로 1,000세대를 바꿀 계획입니다(100억 원). 등유 알리미에 쌓이는 배달 기록으로
         &quot;어느 마을이 기름값을 가장 많이 내나&quot;를 보여 줄 수 있습니다. 아래는 가상 등록 가구로 만든 예시입니다.
       </p>
       <table className="tbl mt-3">

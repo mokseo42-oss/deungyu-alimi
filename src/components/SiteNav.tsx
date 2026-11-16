@@ -30,8 +30,8 @@ export default function SiteNav() {
       }`}
     >
       <div className="wrap flex h-full flex-wrap items-center gap-x-10 md:flex-nowrap">
-        <Link href="/" className="flex h-14 items-center md:h-full" aria-label="등유 안심 처음으로">
-          <span className="text-[19px] font-bold tracking-tight">등유 안심</span>
+        <Link href="/" className="flex h-14 items-center md:h-full" aria-label="등유 알리미 처음으로">
+          <span className="text-[19px] font-bold tracking-tight">등유 알리미</span>
         </Link>
         <nav
           aria-label="소개 페이지 구역"

@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: "등유 안심 · 울주군 시범 프로토타입",
+  title: "등유 알리미 · 울주군 시범 프로토타입",
   description: "기름이 떨어지기 전에 먼저 전화하는 AI. 울산 울주군 시범 시연용 웹 데모",
 };
 

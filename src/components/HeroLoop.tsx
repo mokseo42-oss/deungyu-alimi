@@ -56,7 +56,7 @@ export default function HeroLoop() {
       viewBox="0 0 1000 1000"
       preserveAspectRatio="xMidYMid slice"
       role="img"
-      aria-label="마당 탱크의 등유가 줄어들자 등유 안심 AI가 어르신께 먼저 전화해 주문을 여쭙고, 유조차가 와서 다시 채우는 그림"
+      aria-label="마당 탱크의 등유가 줄어들자 등유 알리미 AI가 어르신께 먼저 전화해 주문을 여쭙고, 유조차가 와서 다시 채우는 그림"
       dangerouslySetInnerHTML={{ __html: heroFrame(0) }}
     />
   );

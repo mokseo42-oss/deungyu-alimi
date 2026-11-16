@@ -59,7 +59,7 @@ export default function HeroPhone() {
       ref={ref}
       className="hero-phone"
       role="img"
-      aria-label={`휴대폰 안에서 등유 안심 시연 화면이 차례로 넘어갑니다: ${PHONE_SLIDES.map((s) => s.label).join(", ")}`}
+      aria-label={`휴대폰 안에서 등유 알리미 시연 화면이 차례로 넘어갑니다: ${PHONE_SLIDES.map((s) => s.label).join(", ")}`}
     >
       <div className="hero-phone-device">
         <div className="hero-phone-screen">

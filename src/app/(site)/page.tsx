@@ -74,9 +74,9 @@ export default function Home() {
             추운 날 탱크가 있는 마당까지 나가기 어려운 어르신, 돈이 무서워 보일러를 아껴 트는 어르신에게는 기름이 바닥나야
             알게 되는 일이 생깁니다.
           </p>
-          <p>등유 안심은 날씨와 지난 배달 기록으로 집마다 기름이 떨어질 날을 미리 계산해, 그 전에 먼저 전화드립니다.</p>
+          <p>등유 알리미은 날씨와 지난 배달 기록으로 집마다 기름이 떨어질 날을 미리 계산해, 그 전에 먼저 전화드립니다.</p>
         </div>
-        {/* 소개 영상: 누르기 전에는 내려받지 않는다(preload="none"). 만든 과정은 '11월 미션/등유 안심/소개영상' 폴더 */}
+        {/* 소개 영상: 누르기 전에는 내려받지 않는다(preload="none"). 만든 과정은 '11월 미션/등유 알리미/소개영상' 폴더 */}
         <figure className="md:col-span-2">
           <video className="aspect-video w-full bg-night" controls preload="none" playsInline poster="/intro-poster.jpg">
             <source src="/intro.mp4" type="video/mp4" />

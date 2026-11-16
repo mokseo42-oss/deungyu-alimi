@@ -61,7 +61,7 @@ export default function ScreenTour() {
       <div className="tour-pin">
         <div className="wrap tour-in w-full">
           <header className="text-center">
-            <p className="text-[16px] md:text-[17px]">모두를 위한 등유 안심</p>
+            <p className="text-[16px] md:text-[17px]">모두를 위한 등유 알리미</p>
             <h2 className="mt-2 text-[26px] font-light leading-snug md:text-[32px]">
               어르신, 가족, 판매소, 군청 모두에게 도움이 됩니다
             </h2>
@@ -189,8 +189,8 @@ function HouseScreen({ v, today }: { v: View; today: string }) {
 function CallScreen({ v }: { v: View }) {
   const speaker = v.h.channel === "AI 스피커";
   const hello = speaker
-    ? "어르신, 안녕하세요. 등유 안심 AI예요. 저는 사람이 아니라 인공지능이에요."
-    : "어르신, 안녕하세요. 울주군 등유 안심 AI입니다. 이 전화는 인공지능이 걸었어요.";
+    ? "어르신, 안녕하세요. 등유 알리미 AI예요. 저는 사람이 아니라 인공지능이에요."
+    : "어르신, 안녕하세요. 울주군 등유 알리미 AI입니다. 이 전화는 인공지능이 걸었어요.";
   const cold = v.proj.nextWeekCold ? "이번 주 한파 예보가 있어서 " : "날이 추워지면서 ";
   return (
     <div className="flex h-full flex-col">
