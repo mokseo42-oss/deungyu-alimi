@@ -3,7 +3,7 @@ import { useMemo, useState } from "react";
 import { Loading, StatusBadge } from "@/components/ui";
 import { useRegistry, View } from "@/lib/useModel";
 import { addDays, fmtDate, fmtL, fmtWon, indexOfDate, learnK } from "@/lib/model";
-import { Order, addFamily, addLog, update, useStore } from "@/lib/store";
+import { Order, addElder, addFamily, addLog, update, useStore } from "@/lib/store";
 import { HOUSEHOLDS } from "@/data/households";
 
 export default function DealerPage() {
@@ -175,6 +175,7 @@ function OrderRow({ o, v }: { o: Order; v?: View }) {
     }));
     addLog(o.hid, "배달", `${L}L 배달 · 탱크 ${fmtL(after)} · 계수 ${v.params.k.toFixed(2)}→${newK.toFixed(2)}`);
     if (v.h.family) addFamily(o.hid, `[등유 안심] 부모님 댁에 등유 ${L}L 배달을 마쳤어요. (${o.dealer.replace(" (가상)", "")})`);
+    addElder(o.hid, `[등유 안심] 등유 ${L}L 넣어 드렸어요. 따뜻하게 지내세요. (${o.dealer.replace(" (가상)", "")})`);
   }
 
   return (

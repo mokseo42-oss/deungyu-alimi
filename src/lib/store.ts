@@ -30,6 +30,7 @@ export type State = {
   kOverride: Record<string, number>;
   logs: Log[];
   family: FamilyMsg[];
+  elder: FamilyMsg[]; // 어르신 본인이 받는 알림(문자, AI 스피커 알림 말)
   checks: Record<string, "요청" | "방문 배정" | "해결">;
   dealerPrices: Record<string, number>;
 };
@@ -42,6 +43,7 @@ const EMPTY: State = {
   kOverride: {},
   logs: [],
   family: [],
+  elder: [],
   checks: {},
   dealerPrices: {},
 };
@@ -107,6 +109,11 @@ export function addLog(hid: string, kind: LogKind, text: string) {
 
 export function addFamily(hid: string, text: string, orderId?: string) {
   update((s) => ({ ...s, family: [{ id: uid(), hid, at: nowISO(), text, orderId }, ...s.family].slice(0, 100) }));
+}
+
+// 어르신께 보내는 알림. 전화를 못 받으셨거나 통화 내용을 잊으셔도 다시 볼 수 있게 짧고 큰 글씨로
+export function addElder(hid: string, text: string, orderId?: string) {
+  update((s) => ({ ...s, elder: [{ id: uid(), hid, at: nowISO(), text, orderId }, ...(s.elder ?? [])].slice(0, 100) }));
 }
 
 export const openOrder = (s: State, hid: string) =>

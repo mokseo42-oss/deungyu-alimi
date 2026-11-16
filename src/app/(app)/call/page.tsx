@@ -7,7 +7,7 @@ import { useHouseholds, View, suggestLiters } from "@/lib/useModel";
 import { fmtDate, fmtL, fmtWon, gaugeLow, keepLowK, learnK, project } from "@/lib/model";
 import { REGION_MEDIAN_K } from "@/data/households";
 import { CONFUSED_SAMPLE, Intent, QUICK, REASK, Stage, faqTopic, understand } from "@/lib/dialog";
-import { addFamily, addLog, nowISO, uid, update, useStore } from "@/lib/store";
+import { addElder, addFamily, addLog, nowISO, uid, update, useStore } from "@/lib/store";
 import { STATIONS_AS_OF, cheapestIn, useStations } from "@/lib/stations";
 
 // via: 어르신 말을 누가 읽었는지(말풍선 아래에 표시)
@@ -194,6 +194,11 @@ function CallSim({ v: live, today }: { v: View; today: string }) {
     sys(`두 번 연속 무응답 → ${h.family ?? "가족 없음"}과 생활지원사에게 알림`);
     addLog(h.id, "안부 확인 필요", "AI 전화 두 번 무응답");
     if (h.family) addFamily(h.id, `[등유 안심] 오늘 부모님(${h.label})께 두 번 전화드렸지만 받지 않으셨어요. 안부 확인 부탁드려요.`);
+    // 전화를 못 받으셔도 어르신이 직접 알 수 있게 문자로도 남긴다
+    const p = live.proj;
+    const when = p.emptyDate && p.emptyDate <= today ? "거의 다 떨어졌을 것 같아요" : `${fmtDate(p.emptyDate)}쯤 떨어질 것 같아요`;
+    addElder(h.id, `[등유 안심] 어르신, 보일러 기름이 ${when}. 기름을 넣으시려면 이 번호로 전화 주세요.`);
+    sys(phone ? "어르신 휴대폰에도 문자로 알림" : "AI 스피커가 알림 말을 남겨 둠");
     update((st) => ({ ...st, checks: { ...st.checks, [h.id]: st.checks[h.id] ?? "요청" } }));
     setStage("done");
   }
@@ -326,12 +331,15 @@ function CallSim({ v: live, today }: { v: View; today: string }) {
         `[등유 안심] 부모님(${h.label})께서 등유 ${liters}L(${fmtWon(liters * v.price)}) 주문을 원하세요. 승인하시면 ${dealer}에 전달됩니다.`,
         id,
       );
+      addElder(h.id, `[등유 안심] 등유 ${liters}L 주문을 받았어요. ${who}께서 확인하시면 ${dealer}에 들어가요.`, id);
       ai(`${who}께 승인 요청을 보냈어요. 승인되면 ${confirmCall}. ${pay}`);
     } else {
       if (h.family) addFamily(h.id, `[등유 안심] 오늘 부모님 댁 등유 ${liters}L 주문, 1~3일 안에 배달 예정입니다. (${dealer})`, id);
+      addElder(h.id, `[등유 안심] 등유 ${liters}L 주문했어요. ${dealer}에서 1~3일 안에 갖다 드려요. 값은 배달 올 때 내시면 돼요.`, id);
       ai(`${liters}리터 주문 ${night ? "받았습니다. 지금은 판매소가 문을 닫은 시간이라 " : "넣었습니다. "}${confirmCall}. ${pay}`);
     }
     sys(needFamily ? "주문 → 가족 승인 대기 (카카오톡)" : night ? "주문 → 판매소 화면으로 전달 (실제로는 내일 아침에 들어감)" : "주문 → 판매소 화면으로 전달");
+    sys(phone ? "어르신 휴대폰에도 주문 문자 보냄" : "AI 스피커에 주문 알림 말을 남겨 둠");
     setStage("done");
   }
 
@@ -602,6 +610,7 @@ function CallSim({ v: live, today }: { v: View; today: string }) {
 
   const quick = QUICK[stage] ?? [];
   const famMsgs = s.family.filter((f) => f.hid === h.id);
+  const elderMsgs = (s.elder ?? []).filter((f) => f.hid === h.id);
   const logs = s.logs.filter((l) => l.hid === h.id).slice(0, 6);
 
   return (
@@ -750,6 +759,21 @@ function CallSim({ v: live, today }: { v: View; today: string }) {
           </dl>
         </section>
 
+        {/* 어르신 본인이 받는 알림: 큰 글씨 문자(휴대폰) 또는 AI 스피커가 남겨 둔 말 */}
+        <section className="card overflow-hidden">
+          <div className="bg-ink px-4 py-2 text-sm font-bold text-white">
+            {phone ? "어르신 휴대폰 · 문자" : "어르신 AI 스피커 · 알림 말"}
+          </div>
+          <div className="max-h-64 space-y-2 overflow-y-auto bg-mist p-3">
+            {elderMsgs.length === 0 && <p className="text-center text-xs text-muted">아직 받은 알림이 없습니다</p>}
+            {elderMsgs.map((f) => (
+              <p key={f.id} className="rounded-xl bg-white p-3 text-[16px] font-medium leading-relaxed">
+                {f.text}
+              </p>
+            ))}
+          </div>
+        </section>
+
         <section className="card overflow-hidden text-sm">
           <div className="bg-[#fee500] px-4 py-2 font-bold text-[#191919]">카카오톡 · {h.family ?? "가족 미등록"}</div>
           <div className="max-h-64 space-y-2 overflow-y-auto bg-[#bacee0] p-3 text-[#191919]">
@@ -766,6 +790,7 @@ function CallSim({ v: live, today }: { v: View; today: string }) {
                         onClick={() => {
                           update((st) => ({ ...st, orders: st.orders.map((x) => (x.id === o.id ? { ...x, status: "접수" } : x)) }));
                           addLog(h.id, "주문", `가족 승인 완료 · ${o.liters}L`);
+                          addElder(h.id, `[등유 안심] ${who}께서 확인하셨어요. 등유 ${o.liters}L, ${dealer}에서 1~3일 안에 갖다 드려요.`, o.id);
                         }}
                       >
                         승인

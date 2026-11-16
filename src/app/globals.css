@@ -489,6 +489,18 @@
     align-self: flex-end;
     animation-delay: 1.2s;
   }
+  /* 어르신 문자와 자녀 카톡을 나란히 */
+  .story-notes {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 10px;
+  }
+  .story-notes .story-card {
+    width: auto;
+  }
+  .story-elder {
+    animation-delay: 2.4s;
+  }
   .story-family {
     animation-delay: 2.4s;
   }
@@ -573,6 +585,9 @@
     .story-bubble,
     .story-text {
       font-size: 14px;
+    }
+    .story-notes {
+      grid-template-columns: 1fr;
     }
     .story-family {
       display: none;

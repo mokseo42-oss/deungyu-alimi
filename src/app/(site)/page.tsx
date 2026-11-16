@@ -23,7 +23,7 @@ const ULJU = [
 const WHO = [
   {
     t: "어르신",
-    d: "이 서비스가 지키려는 분입니다. 앱을 깔 필요 없이 전화만 받으시면 됩니다. 기름을 넣을지는 늘 어르신이 정합니다.",
+    d: "이 서비스가 지키려는 분입니다. 앱 없이 전화만 받으시면 되고, 통화 내용은 큰 글씨 문자로 한 번 더 보내 드립니다. 전화를 놓치셔도 문자로 아실 수 있습니다. 기름을 넣을지는 늘 어르신이 정합니다.",
   },
   {
     t: "자녀",
@@ -49,7 +49,7 @@ export default function Home() {
             </h1>
             <p className="mt-6 max-w-[30em] text-[17px] font-light leading-[1.75] md:text-[18px]">
               혼자 사시는 어르신은 보일러 기름이 얼마나 남았는지 직접 보고, 직접 전화해서 시켜야 합니다. 등유 안심이 날씨를
-              보고 먼저 알아채 전화드리고, 자녀에게도 알려 드립니다.
+              보고 먼저 알아채 전화드리고, 어르신께는 문자로, 자녀에게는 카카오톡으로 함께 알려 드립니다.
             </p>
             <div className="mt-8 flex flex-wrap items-center gap-x-7 gap-y-4">
               <Link href={APP_HOME} className="hero-cta">
