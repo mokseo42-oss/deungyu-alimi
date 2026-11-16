@@ -29,15 +29,23 @@ const ICON: Record<string, React.ReactNode> = {
     </>
   ),
   bell: <path d="M6 16.5V11a6 6 0 1 1 12 0v5.5l1.5 2h-15zM10 20.5a2.2 2.2 0 0 0 4 0" />,
+  check: (
+    <>
+      <circle cx="12" cy="12" r="8.5" />
+      <path d="m8.5 12.3 2.4 2.4 4.6-5" />
+    </>
+  ),
 };
 
+// short: 휴대폰 아래 메뉴(일곱 칸)에 쓰는 짧은 이름
 const LINKS = [
-  { href: APP_HOME, label: "홈", icon: "home" },
-  { href: "/households", label: "가구 잔량", icon: "tank" },
-  { href: "/call", label: "AI 전화", icon: "phone" },
-  { href: "/dealer", label: "판매소", icon: "truck" },
-  { href: "/dashboard", label: "현황판", icon: "board" },
-  { href: "/alerts", label: "알림", icon: "bell" },
+  { href: APP_HOME, label: "홈", short: "홈", icon: "home" },
+  { href: "/households", label: "가구 잔량", short: "가구", icon: "tank" },
+  { href: "/call", label: "AI 전화", short: "전화", icon: "phone" },
+  { href: "/dealer", label: "판매소", short: "판매소", icon: "truck" },
+  { href: "/dashboard", label: "현황판", short: "현황판", icon: "board" },
+  { href: "/alerts", label: "알림", short: "알림", icon: "bell" },
+  { href: "/verify", label: "검증", short: "검증", icon: "check" },
 ];
 
 function Icon({ name }: { name: string }) {
@@ -107,9 +115,9 @@ export default function AppNav() {
       {/* 휴대폰: 아래에 떠 있는 둥근 메뉴 */}
       <nav aria-label={`${APP_NAME} 화면`} className="app-bottom">
         {LINKS.map((l) => (
-          <Link key={l.href} href={l.href} aria-current={on(l.href) ? "page" : undefined} className="app-bottom-link">
+          <Link key={l.href} href={l.href} aria-current={on(l.href) ? "page" : undefined} className="app-bottom-link" aria-label={l.label}>
             <Icon name={l.icon} />
-            {l.label}
+            {l.short}
           </Link>
         ))}
       </nav>
