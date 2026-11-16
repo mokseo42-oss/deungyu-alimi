@@ -201,11 +201,25 @@ export function safeIntent(intent: Intent, text: string, stage: string): Intent 
   return intent.t === "yes" && ACTION_STAGES.includes(stage) && doubt.test(text) ? { t: "unknown" } : intent;
 }
 
-// 문장 속 숫자가 모두 사실 목록에 있는 숫자와 같은지. 일부만 겹치는 숫자("1,560" 속의 5, 15, 60)는 통과시키지 않는다
+// 눈금·양처럼 숫자로 받는 답은 낱말 규칙이 읽은 값이 있으면 그 값을 쓴다.
+// 점검 때 Gemini가 같은 "아래서 한 칸 남았나"를 50L로 두 번, 100L(두 칸)로 한 번 읽었다
+export function preferRuleNumbers(llm: Intent, rule: Intent): Intent {
+  const hasL = (i: Intent): i is Intent & { liters: number } => "liters" in i && typeof i.liters === "number";
+  return llm.t === rule.t && hasL(llm) && hasL(rule) && llm.liters !== rule.liters ? rule : llm;
+}
+
+// 한글로 쓴 날수·기간. 아라비아 숫자 검사를 빠져나가므로 따로 본다("배달은 이틀 안에 갑니다")
+const COUNT_WORDS = /하루|이틀|사흘|나흘|닷새|엿새|이레|여드레|열흘|보름|일주일|(한|두|세) ?(주|달)|(한|두|세|네|다섯) ?(시간|말|드럼)/g;
+
+// 문장 속 숫자가 모두 사실 목록에 있는 숫자와 같은지. 일부만 겹치는 숫자("1,560" 속의 5, 15, 60)는 통과시키지 않는다.
+// 한글로 쓴 날수·기간도 사실 목록에 같은 말이 있을 때만 통과한다
 export function numbersOk(text: string, facts: Facts) {
+  const blob = Object.values(facts).join(" ");
   const nums = (t: string) => t.replace(/,/g, "").match(/\d+(\.\d+)?/g) ?? [];
-  const known = new Set(nums(Object.values(facts).join(" ")));
-  return nums(text).every((n) => known.has(n));
+  const known = new Set(nums(blob));
+  const words = (t: string) => (t.match(COUNT_WORDS) ?? []).map((w) => w.replace(/\s+/g, ""));
+  const knownWords = new Set(words(blob));
+  return nums(text).every((n) => known.has(n)) && words(text).every((w) => knownWords.has(w));
 }
 
 // 브라우저에서 호출: Gemini로 이해하고, 실패하면 규칙으로

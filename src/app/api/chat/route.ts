@@ -4,7 +4,19 @@
 // - LLM 문장에 사실 목록에 없는 숫자가 들어 있으면 그 문장을 버린다(숫자 지어내기 방지).
 // - 키가 없거나 Gemini가 실패하면 낱말 규칙의 답을 쓴다.
 import { NextRequest, NextResponse } from "next/server";
-import { ALLOWED, Facts, Intent, URGENT, Understood, classify, isQuestion, numbersOk, ruleIsEnough, safeIntent } from "@/lib/dialog";
+import {
+  ALLOWED,
+  Facts,
+  Intent,
+  URGENT,
+  Understood,
+  classify,
+  isQuestion,
+  numbersOk,
+  preferRuleNumbers,
+  ruleIsEnough,
+  safeIntent,
+} from "@/lib/dialog";
 import { GEMINI_MODEL, geminiJSON, hasGemini } from "@/lib/gemini";
 
 export const dynamic = "force-dynamic";
@@ -162,7 +174,7 @@ ${history.join("\n") || "(없음)"}
   try {
     const o = await geminiJSON<Out>(SYSTEM, user, SCHEMA);
     if (!allowed.includes(o.intent)) o.intent = "unknown";
-    const intent = safeIntent(toIntent(o, tank), text, stage);
+    const intent = safeIntent(preferRuleNumbers(toIntent(o, tank), ruleIntent), text, stage);
     let say = (o.say ?? "").trim().slice(0, 60);
     // 급한 말에는 화면이 정해진 안내만 한다(LLM 한마디를 붙이지 않는다)
     if (/\d/.test(say) || intent.t === "unknown" || intent.t === "question" || URGENT.includes(intent.t)) say = "";

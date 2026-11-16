@@ -442,8 +442,9 @@ function CallSim({ v: live, today }: { v: View; today: string }) {
     if (it.t === "boiler") return boilerHelp();
     if (it.t === "human") return toHuman();
     if (it.t === "distrust") return distrust();
-    // Gemini가 답하지 못했어도, 자주 나오는 질문에는 사실 목록의 값으로 바로 답한다
-    const topic = u.source === "rule" && !u.direct ? faqTopic(text) : null;
+    // 자주 나오는 질문에는 Gemini가 답했든 못 했든 정해 둔 문장으로 답한다.
+    // Gemini가 쓴 답은 정해 둔 문장이 없는 질문에만 쓴다(점검 때 "배달은 이틀 안에"처럼 사실에 없는 말을 지어냈다)
+    const topic = it.t === "question" || (u.source === "rule" && !u.direct) ? faqTopic(text) : null;
     const canned = topic && FAQ[topic];
     if (canned || it.t === "question") {
       ai(`${canned || u.answer || "그건 제가 정확히 알지 못해요."} ${REASK[stage] ?? ""}`.trim());
