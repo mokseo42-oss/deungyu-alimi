@@ -363,3 +363,23 @@ for (const [text, want] of askFaq) {
     assert.equal(dialog.faqTopic(text), want);
   });
 }
+
+// Gemini 쪽 안전장치 (11/16 실제 사이트 점검에서 나온 것)
+test("Gemini가 눈금·양을 규칙과 다르게 읽으면 규칙 값을 쓴다", () => {
+  const rule = classify("아래서 한 칸 남았나", TANK, "gauge");
+  const llm = { t: "gauge", liters: 100, label: "두 칸" };
+  assert.equal(dialog.preferRuleNumbers(llm, rule).liters, 50);
+  // 규칙이 못 읽었으면 Gemini 값을 그대로 쓴다
+  assert.equal(dialog.preferRuleNumbers(llm, { t: "unknown" }).liters, 100);
+  // 의도가 다르면 건드리지 않는다
+  assert.equal(dialog.preferRuleNumbers({ t: "amount", liters: 100 }, rule).t, "amount");
+});
+
+test("한글로 쓴 날수·기간도 사실 목록에 없으면 막는다", () => {
+  const F = { 배달: "보통 1~3일 안에 배달", 결제: "배달 올 때 카드로" };
+  assert.equal(dialog.numbersOk("배달은 이틀 안에 갑니다", F), false);
+  assert.equal(dialog.numbersOk("일주일쯤 걸려요", F), false);
+  assert.equal(dialog.numbersOk("보통 1~3일 안에 갖다 드려요", F), true);
+  assert.equal(dialog.numbersOk("이틀 걸려요", { 배달: "보통 이틀" }), true);
+  assert.equal(dialog.numbersOk("배달 올 때 카드로 내시면 돼요", F), true);
+});

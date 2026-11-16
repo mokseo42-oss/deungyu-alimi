@@ -22,7 +22,7 @@ export async function geminiJSON<T>(system: string, user: string, schema: Schema
         systemInstruction: { parts: [{ text: system }] },
         contents: [{ role: "user", parts: [{ text: user }] }],
         generationConfig: {
-          temperature: 0.2,
+          temperature: 0, // 같은 말에는 같은 답이 나오게
           maxOutputTokens: 400,
           responseMimeType: "application/json",
           responseSchema: schema,
