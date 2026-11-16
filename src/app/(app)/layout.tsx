@@ -3,7 +3,8 @@ import AppNav from "@/components/AppNav";
 // 기능 화면 틀
 export default function AppLayout({ children }: { children: React.ReactNode }) {
   return (
-    <>
+    // 소개 페이지(흰 바탕 읽을거리)와 달리, 기능 화면은 검은 윗줄 + 회색 작업 바탕 + 흰 카드로 '쓰는 도구'처럼 보이게 한다
+    <div className="app-shell">
       <AppNav />
       <main id="main">{children}</main>
       <footer className="border-t border-line">
@@ -14,6 +15,6 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
           현황(2025-08-20)입니다. 시연 조작은 이 브라우저에만 저장됩니다.
         </p>
       </footer>
-    </>
+    </div>
   );
 }
