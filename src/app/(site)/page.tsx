@@ -47,10 +47,6 @@ export default function Home() {
               <br />
               먼저 전화하는 AI
             </h1>
-            <p className="mt-6 max-w-[30em] text-[17px] font-light leading-[1.75] md:text-[18px]">
-              혼자 사시는 어르신은 보일러 기름이 얼마나 남았는지 직접 보고, 직접 전화해서 시켜야 합니다. 등유 안심이 날씨를
-              보고 먼저 알아채 전화드리고, 어르신께는 문자로, 자녀에게는 카카오톡으로 함께 알려 드립니다.
-            </p>
             <div className="mt-8 flex flex-wrap items-center gap-x-7 gap-y-4">
               <Link href={APP_HOME} className="hero-cta">
                 {APP_NAME} 시작하기

@@ -18,31 +18,22 @@ export default function HeroStory() {
       />
       <div className="story" aria-label="예시 장면: 기름이 떨어지기 전에 AI가 먼저 전화하고, 어르신과 자녀에게 함께 알린다">
         <div className="story-card story-tank">
-          <p className="story-who">상북면 할머니 댁 · 혼자 사심</p>
+          <p className="story-who">상북면 할머니 댁</p>
           <p className="story-big">기름이 5일 뒤면 떨어져요</p>
           <div className="story-gauge" aria-hidden="true">
             <i style={{ width: "18%" }} />
           </div>
-          <p className="story-sub">남은 등유 약 40L · 다음 주 한파 예보</p>
         </div>
 
         <div className="story-card story-call">
-          <p className="story-who">등유 안심 AI가 먼저 전화했어요</p>
-          <p className="story-bubble story-ai">
-            할머니, 다음 주에 많이 춥대요. 기름이 닷새쯤 뒤면 떨어질 것 같은데, 늘 시키시던 상회에 넣어 드릴까요?
-          </p>
-          <p className="story-bubble story-me">그래, 반 드럼만 넣어 줘.</p>
+          <p className="story-who">AI가 먼저 전화</p>
+          <p className="story-bubble story-ai">할머니, 기름 넣어 드릴까요?</p>
+          <p className="story-bubble story-me">그래, 반 드럼만.</p>
         </div>
 
-        <div className="story-notes">
-          <div className="story-card story-elder">
-            <p className="story-who">할머니 휴대폰 · 문자</p>
-            <p className="story-text">등유 100L 주문했어요. 내일 갖다 드려요.</p>
-          </div>
-          <div className="story-card story-family">
-            <p className="story-who">아드님 휴대폰 · 카카오톡</p>
-            <p className="story-text">어머니 댁 등유 100L 주문했어요. 내일 배달 와요.</p>
-          </div>
+        <div className="story-card story-family">
+          <p className="story-who">할머니 문자 · 아드님 카톡</p>
+          <p className="story-text">등유 100L 주문했어요. 내일 갖다 드려요.</p>
         </div>
       </div>
       <figcaption className="hero-caption">
