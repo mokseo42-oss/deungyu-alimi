@@ -116,7 +116,8 @@ const NEGATED = /지 ?마|지 ?말|않|안 ?(해|할|하|시|넣|사)|그만|취
 export function urgentIntent(text: string): Intent | null {
   const s = text.replace(/\s+/g, " ");
   const hurts = /아파(?!트)|아프/.test(s) && !/안 ?아[파프]|아프지 ?않/.test(s); // '아파트'는 아니다
-  if (hurts || /몸이 ?안 ?좋|쓰러|어지러|숨이 ?(차|막|안)|가슴이|살려|119/.test(s)) return { t: "emergency" };
+  if (hurts || /몸이 ?안 ?좋|쓰러|어지러|숨이 ?(차|막|안)|가슴이|살려|119|기운이 ?없|밥[을도]? ?못 ?먹|못 ?일어나|누워만|열이 ?(나|많|있)|넘어[져졌]|다쳤/.test(s))
+    return { t: "emergency" };
   if (/보일러.*(안 ?켜[져지]|안 ?돌아|안 ?[돼되]|고장|꺼졌|꺼져)|불이 ?안 ?(들어|붙)/.test(s)) return { t: "boiler" };
   if (/사람.{0,6}(얘기|이야기|통화|바꿔|불러|연결)|상담원/.test(s)) return { t: "human" };
   // '사기'는 속인다는 뜻일 때만("기름 사기 힘들어"는 아니다)

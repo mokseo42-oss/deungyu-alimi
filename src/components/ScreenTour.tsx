@@ -159,7 +159,7 @@ function HouseScreen({ v, today }: { v: View; today: string }) {
       <div className="mt-1 flex items-center justify-between gap-2">
         <b className="text-[15px] font-semibold">{v.h.label}</b>
         <span className="origin-right scale-[0.85]">
-          <StatusBadge s={v.status} />
+          <StatusBadge s={v.shown} />
         </span>
       </div>
       <div className="mt-5 flex items-end gap-3">
@@ -265,7 +265,7 @@ function BoardScreen({ v, today }: { v: View; today: string }) {
         <div className="flex items-center justify-between gap-2">
           <span className="text-[13px] font-semibold">{v.h.label}</span>
           <span className="origin-right scale-[0.85]">
-            <StatusBadge s={v.status} />
+            <StatusBadge s={v.shown} />
           </span>
         </div>
         <p className="mt-1.5 text-[11px] leading-relaxed text-muted">

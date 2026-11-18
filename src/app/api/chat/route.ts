@@ -154,9 +154,12 @@ export async function POST(req: NextRequest) {
   // 낱말 규칙의 답. 규칙이 못 읽은 질문 가운데 정해 둔 답이 있는 것만 질문으로 넘긴다(나머지는 못 알아들은 말)
   const rule = (note: string, direct = false): Understood =>
     ruleQuestion(text, ruleIntent)
-      ? { intent: { t: "question" }, answer: DONT_KNOW, source: "rule", note }
+      ? { intent: { t: "question" }, answer: DONT_KNOW, source: "rule", direct, note }
       : { intent: ruleIntent, source: "rule", direct, note };
   if (ruleIsEnough(text, ruleIntent)) return NextResponse.json(rule("분명한 말이라 낱말 규칙으로 바로 읽음", true));
+  // 정해 둔 답이 있는 짧은 질문("기름 얼마나 남았어?")은 Gemini를 기다리지 않는다. Gemini가 답해도 화면은 정해 둔 답을 쓴다
+  if (ruleQuestion(text, ruleIntent) && text.trim().split(/\s+/).length <= 6)
+    return NextResponse.json(rule("정해 둔 답이 있는 질문이라 바로 답함", true));
   if (!hasGemini()) return NextResponse.json(rule("GEMINI_API_KEY 없음 → 규칙 분류"));
   const ip = req.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ?? "local";
   if (limited(ip)) return NextResponse.json(rule("요청이 많아 규칙 분류"));

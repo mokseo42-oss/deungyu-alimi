@@ -182,7 +182,7 @@ function OrderRow({ o, v }: { o: Order; v?: View }) {
     <tr>
       <td>
         <div className="font-medium">{v?.h.label ?? o.hid}</div>
-        {v && <StatusBadge s={v.status} />}
+        {v && <StatusBadge s={v.shown} />}
       </td>
       <td>{o.dealer}</td>
       <td className="num">{fmtL(o.liters)}</td>

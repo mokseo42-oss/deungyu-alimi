@@ -54,6 +54,7 @@ export type View = {
   startLevel: number;
   proj: Projection;
   status: Status;
+  shown: Status; // 화면 표시용: 생활지원사 '살펴봐 주세요' 요청이 '해결' 전이면 계산 상태보다 앞선다(현황판 목록과 같게)
   price: number;
   shortfall: ReturnType<typeof winterShortfall>;
   orderId?: string;
@@ -100,6 +101,7 @@ export function buildView(h: Household, raw: Day[], today: string, s: State): Vi
     startLevel,
     proj,
     status: statusOf(proj, today, !!oo),
+    shown: !oo && s.checks[h.id] && s.checks[h.id] !== "해결" ? "check" : statusOf(proj, today, !!oo),
     price,
     shortfall: winterShortfall(params, days, todayIdx, price, h.voucherLeft),
     orderId: oo?.id,

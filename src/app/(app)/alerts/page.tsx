@@ -96,7 +96,8 @@ export default function AlertsPage() {
         )}
       </section>
 
-      <div className="grid gap-6 lg:grid-cols-[minmax(0,3fr)_minmax(0,2fr)]">
+      {/* 휴대폰 한 칸일 때도 칸 폭을 화면에 맞춘다(보낸 알림 표가 칸을 넓혀 페이지가 옆으로 넘치던 것) */}
+      <div className="grid grid-cols-[minmax(0,1fr)] gap-6 lg:grid-cols-[minmax(0,3fr)_minmax(0,2fr)]">
         <section className="card p-6">
           <h2 className="sec-title">보낸 알림</h2>
           {rows.length === 0 ? (
@@ -182,7 +183,7 @@ function Result({ n }: { n: Note }) {
 
 // 집마다 다음에 갈 알림을 계산값으로 미리 보여 준다
 function Upcoming({ v, today }: { v: View; today: string }) {
-  const { h, proj, status } = v;
+  const { h, proj, shown: status } = v;
   const sms = h.channel === "AI 스피커" ? "AI 스피커 알림 말" : "어르신 문자";
   let when = "";
   let what = "";
@@ -195,7 +196,11 @@ function Upcoming({ v, today }: { v: View; today: string }) {
   } else if (status === "check") {
     when = "지금";
     what = "생활지원사 '살펴봐 주세요'";
-    preview = `기름이 ${fmtDate(proj.emptyDate)}쯤 떨어졌을 것 같은데 주문이 없습니다. 한번 찾아가 봐 주세요.`;
+    // 통화에서 요청이 들어온 집(기름값 부담, 몸 상태 등)은 소진일이 아직 아닐 수 있다
+    preview =
+      proj.emptyDate && proj.emptyDate <= today
+        ? `기름이 ${fmtDate(proj.emptyDate)}쯤 떨어졌을 것 같은데 주문이 없습니다. 한번 찾아가 봐 주세요.`
+        : "통화에서 살펴봐 달라는 요청이 있었습니다. 한번 찾아가 봐 주세요.";
     optOut = false;
   } else if (proj.alertDate) {
     // 알림일이 이미 지났으면(아직 전화를 안 한 시연 상태) 오늘 건다

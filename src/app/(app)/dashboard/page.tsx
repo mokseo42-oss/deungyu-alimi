@@ -236,7 +236,7 @@ function LookItem({ v, today, state }: { v: View; today: string; state?: "요청
     <li className={`border p-4 text-sm ${demo ? "border-ink" : "border-line"}`}>
       <div className="flex flex-wrap items-center justify-between gap-2">
         <div className="flex flex-wrap items-center gap-x-3 font-semibold">
-          {v.h.label} <StatusBadge s={v.status} />
+          {v.h.label} <StatusBadge s={v.shown} />
         </div>
         <div className="flex gap-1">
           {state !== "방문 배정" && state !== "해결" && (
