@@ -9,7 +9,7 @@ import { useStations } from "@/lib/stations";
 import { addPriceRule, useStore } from "@/lib/store";
 import { View, useHouseholds } from "@/lib/useModel";
 
-// 등유 알리미 홈: 기름알리미처럼 "무엇이든 물어보세요"가 입구다.
+// 등유 알리미 '물어보기'(챗봇): 기름알리미처럼 "무엇이든 물어보세요". 앱의 첫 화면은 AI 전화다(routes.ts APP_HOME).
 // 질문은 /api/ask로 가고, 답 속 숫자는 서버가 오피넷 조회값·우리 집 계산값과 대조한 뒤 보여 준다.
 
 type Reply = {
