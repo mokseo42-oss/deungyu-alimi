@@ -51,6 +51,7 @@ function houseFacts(v: View, today: string): HouseFacts {
     dealer: h.dealer.replace(" (가상)", ""),
     dealerPrice: v.price,
     ahead,
+    ordered: !!v.orderId,
   };
 }
 

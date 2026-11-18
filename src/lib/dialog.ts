@@ -195,6 +195,10 @@ export function faqTopic(text: string): "pay" | "delivery" | "cheaper" | "who" |
   return null;
 }
 
+// 낱말 규칙만으로 읽을 때(Gemini 없음·실패) 질문으로 볼 말: 화면에 정해 둔 답(FAQ)이 있는 질문만.
+// 그 밖의 질문 꼴("손주가 언제 온다 했더라")은 못 알아들은 말로 쳐야 두 번 쌓여 가족·생활지원사에게 넘어간다
+export const ruleQuestion = (text: string, intent: Intent) => intent.t === "unknown" && isQuestion(text) && faqTopic(text) !== null;
+
 // Gemini가 승낙이라고 해도, 승낙이 곧 행동인 단계에서 되묻거나 망설이는 말이면 다시 묻게 한다
 export function safeIntent(intent: Intent, text: string, stage: string): Intent {
   const doubt = /\?|누구|뭐|뭔|얼마|얼만|언제|어디|왜|잠깐|다음에|나중에|생각|물어|말고|글쎄|모르/;

@@ -1,7 +1,8 @@
 // 등유 챗봇(홈 화면 '무엇이든 물어보세요')의 질문 종류, 사실 목록, 정해 둔 답.
 // 원칙(기름알리미와 같음): AI는 말을 쓰고, 숫자는 계산·조회 값만 쓴다. 답 속 숫자를 사실 목록과 대조해 맞을 때만 보여 준다.
 // Gemini가 없거나 실패하거나 숫자가 맞지 않으면 여기 정해 둔 답을 쓴다.
-import { addDays, fmtDate } from "@/lib/model";
+import { EMDS } from "@/data/ulju";
+import { addDays, fmtCallDay, fmtDate } from "@/lib/model";
 
 export type Topic =
   | "alert" // 가격 알림 조건 걸기
@@ -31,7 +32,14 @@ export type HouseFacts = {
   dealer: string;
   dealerPrice: number;
   ahead: number[]; // 오늘부터 날마다 쓸 양(L). 이용자가 말한 바우처 금액으로 며칠 버틸지 셀 때 쓴다
+  ordered: boolean; // 주문이 들어가 배달을 기다리는 중
 };
+
+// 질문 속 읍면 이름("두서면", "두서")
+export function emdIn(q: string): string | null {
+  const s = q.replace(/\s+/g, "");
+  return EMDS.find((e) => s.includes(e.name) || s.includes(e.name.slice(0, -1)))?.name ?? null;
+}
 
 // 등유 가격(서버가 오피넷에서 조회)
 export type PriceFacts = {
@@ -76,13 +84,15 @@ export function topicOf(q: string): Topic {
   if (/알려|알림/.test(s) && /떨어|바닥|미리/.test(s)) return "alert";
   if (/바우처|에너지 ?바우처|지원금/.test(s)) return "voucher";
   if (/한파|추워|추우|추운|영하|강추위/.test(s)) return "cold";
-  if (/(제일|가장|젤|더) ?싼|최저가?|싼 ?(데|곳|주유소)/.test(s)) return "cheapest";
+  if (/(제일|가장|젤|더) ?(싼|싸)|최저가?|싼 ?(데|곳|주유소)/.test(s)) return "cheapest";
   if (/언제.*(떨어|바닥|없어)|얼마나 ?남|며칠|남은 ?(기름|양)|(떨어|바닥).*(언제|날)/.test(s)) return "empty";
-  if (/(반 ?드럼|한 ?드럼|드럼|\d+ ?(리터|L|l)|말).*(얼마|값|가격)|(얼마).*(반 ?드럼|한 ?드럼|드럼|리터)/.test(s)) return "amount";
+  // '말'은 수 다음일 때만("두 말"). "정말 등유값"의 '말'을 잡지 않게
+  if (/(반 ?드럼|한 ?드럼|드럼|\d+ ?(리터|L|l)|(\d+|한|두|세|네|다섯|여섯) ?말).*(얼마|값|가격)|(얼마).*(반 ?드럼|한 ?드럼|드럼|리터)/.test(s)) return "amount";
   if (/왜|비싸|올랐|오르|내렸|최고 ?가격|고시|유류세/.test(s)) return "why";
   if (/(값|돈|결제|계산|카드)/.test(s) && /(어떻게|언제|뭐로|어디|내)/.test(s)) return "pay";
   if (/(언제|며칠).*(갖다|배달|와|걸려)|배달/.test(s)) return "delivery";
   if (/얼마/.test(s)) return "amount";
+  if (/가격|시세|값/.test(s)) return "why"; // "오늘 등유 가격 알려 줘": 울주·전국 평균으로 답한다
   return "other";
 }
 
@@ -128,7 +138,8 @@ export function factsFor(topic: Topic, p: PriceFacts, h: HouseFacts | null, q = 
     f["가구"] = `${h.label} (${h.emd})`;
     f["오늘 남은 기름(추정)"] = `약 ${L(h.level)} (탱크 ${L(h.tank)})`;
     f["예상 소진일"] = h.emptyDate ? `${fmtDate(h.emptyDate)}${h.daysLeft != null ? `, ${h.daysLeft > 0 ? `${h.daysLeft}일 남음` : "이미 지남"}` : ""}` : "이번 겨울 안에는 없음";
-    if (h.alertDate) f["먼저 전화하는 날"] = h.alertDate <= h.today ? `${fmtDate(h.alertDate)}부터 전화할 때(이미 지남)` : fmtDate(h.alertDate);
+    if (h.alertDate) f["먼저 전화하는 날"] = fmtCallDay(h.alertDate, h.today);
+    if (h.ordered) f["주문"] = "들어가 있음. 판매소가 확인 전화 후 배달";
     f["앞으로 7일 쓸 양"] = `약 ${L(h.use7)}`;
     f["지난 7일 쓴 양"] = `약 ${L(h.usual7)}`;
     f["앞으로 7일 한파 신호"] = h.coldDates.length ? dates(h.coldDates) : "없음";
@@ -162,7 +173,7 @@ export function templateAnswer(topic: Topic, p: PriceFacts, h: HouseFacts | null
       const price = parsePriceRule(q);
       if (price) return `${p.emd} 등유가 ${perL(price)} 밑으로 내려가면 알려 드리는 조건으로 바꿨어요. 아래 [조건 저장]을 누르시면 알림 탭에 저장돼요.`;
       return h
-        ? `기름이 떨어지기 전 알림은 이미 켜져 있어요. ${h.alertDate ? `${fmtDate(h.alertDate)}에 먼저 전화드리고, 못 받으시면 문자로 알려 드려요.` : "지금은 넉넉해서 당분간 전화할 일이 없어요."}`
+        ? `기름이 떨어지기 전 알림은 이미 켜져 있어요. ${h.alertDate ? `${h.alertDate <= h.today ? "오늘" : `${fmtDate(h.alertDate)}에`} 먼저 전화드리고, 못 받으시면 문자로 알려 드려요.` : "지금은 넉넉해서 당분간 전화할 일이 없어요."}`
         : `기름이 떨어지기 전 알림은 집마다 자동으로 켜져 있어요. ${needHouse}`;
     }
     case "cheapest":
@@ -179,9 +190,12 @@ export function templateAnswer(topic: Topic, p: PriceFacts, h: HouseFacts | null
         .join(" ");
     case "empty":
       if (!h) return `집마다 남은 기름을 날씨로 매일 다시 계산해요. ${needHouse}`;
-      return h.emptyDate
-        ? `제 계산으로는 지금 약 ${L(h.level)} 남았고, ${fmtDate(h.emptyDate)}쯤 떨어질 것 같아요. 앞으로 7일 동안 약 ${L(h.use7)} 쓰실 것 같아요.${h.alertDate ? (h.alertDate <= h.today ? " 지금 기름을 넣으실 때예요. 주문을 도와드릴까요?" : ` ${fmtDate(h.alertDate)}에 먼저 전화드릴게요.`) : ""}`
-        : `제 계산으로는 지금 약 ${L(h.level)} 남았고, 이번 겨울 안에 떨어질 일은 없어 보여요.`;
+      // 챗봇에는 주문 기능이 없다. 주문은 AI 전화·단골 판매소로 안내한다
+      if (h.ordered) return `주문이 들어가 있어요. 판매소에서 확인 전화를 드리고 보통 1~3일 안에 갖다 드려요.`;
+      if (!h.emptyDate) return `제 계산으로는 지금 약 ${L(h.level)} 남았고, 이번 겨울 안에 떨어질 일은 없어 보여요.`;
+      if (h.emptyDate <= h.today)
+        return `제 계산으로는 기름이 ${fmtDate(h.emptyDate)}쯤 이미 떨어졌을 것 같아요. 아직 넣지 않으셨다면 ${h.dealer}에 주문하시면 돼요.`;
+      return `제 계산으로는 지금 약 ${L(h.level)} 남았고, ${fmtDate(h.emptyDate)}쯤 떨어질 것 같아요. 앞으로 7일 동안 약 ${L(h.use7)} 쓰실 것 같아요.${h.alertDate ? (h.alertDate <= h.today ? ` 지금 기름을 넣으실 때예요. 오늘 먼저 연락드리고, ${h.dealer}에 바로 주문하셔도 돼요.` : ` ${fmtDate(h.alertDate)}에 먼저 전화드릴게요.`) : ""}`;
     case "cold":
       if (!h) return `한파가 오면 기름을 더 많이 써요. ${needHouse}`;
       return h.coldDates.length

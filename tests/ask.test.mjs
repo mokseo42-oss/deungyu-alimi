@@ -3,7 +3,7 @@ import { test } from "node:test";
 import assert from "node:assert/strict";
 import { register } from "node:module";
 register("./alias-hooks.mjs", import.meta.url);
-const { josa, topicOf, parsePriceRule, parseWon, factsFor, templateAnswer, SUGGEST, countNumbers } = await import("../src/lib/ask.ts");
+const { josa, topicOf, parsePriceRule, parseWon, emdIn, factsFor, templateAnswer, SUGGEST, countNumbers } = await import("../src/lib/ask.ts");
 const { numbersOk } = await import("../src/lib/dialog.ts");
 
 const P = {
@@ -32,7 +32,33 @@ const H = {
   dealer: "두서 ○○상회",
   dealerPrice: 1580,
   ahead: Array(60).fill(8), // 오늘부터 날마다 쓸 양(L)
+  ordered: false,
 };
+
+test("물어보기: 흔한 가격 질문과 '싸?'를 알아듣는다", () => {
+  assert.equal(topicOf("오늘 등유 가격 알려 줘"), "why");
+  assert.equal(topicOf("어디가 제일 싸?"), "cheapest");
+  assert.equal(topicOf("정말 등유값 왜 이래?"), "why");
+  assert.equal(topicOf("두 말 얼마야?"), "amount");
+  assert.equal(topicOf("값은 어떻게 내?"), "pay");
+});
+
+test("물어보기: 질문 속 읍면 이름을 찾는다", () => {
+  assert.equal(emdIn("두서면 등유 제일 싼 곳 어디야?"), "두서면");
+  assert.equal(emdIn("두서 1,500원 밑으로 내려가면 알려 줘"), "두서면");
+  assert.equal(emdIn("등유 얼마야?"), null);
+});
+
+test("물어보기: 지난 소진일·알림일은 지난 일로 말하고, 챗봇에서 주문을 권하지 않는다", () => {
+  const past = { ...H, level: 0, emptyDate: "2026-11-08", daysLeft: -8, alertDate: "2026-10-18" };
+  const a = templateAnswer("empty", P, past, "언제 떨어져?");
+  assert.match(a, /떨어졌을/);
+  assert.doesNotMatch(a, /도와드릴까요/);
+  const b = templateAnswer("alert", P, H, "기름 떨어지기 전에 알려 줘"); // H는 알림일 11/14 < 오늘 11/16
+  assert.match(b, /오늘/);
+  assert.doesNotMatch(b, /11월 14일/);
+  assert.match(templateAnswer("empty", P, { ...H, ordered: true }, "언제 떨어져?"), /주문이 들어가/);
+});
 const allow = (q, facts) => ({ 질문: q, ...Object.fromEntries(Object.entries(facts).map(([k, v]) => [k, `${k} ${v}`])) });
 
 // 바우처 잔액은 기관과 연계하기 전에는 알 수 없다. 챗봇은 잔액을 말하지 않고, 이용자가 말한 금액으로만 계산한다

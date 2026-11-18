@@ -204,7 +204,7 @@ function CallScreen({ v }: { v: View }) {
       <p className="mt-4 text-center text-[11px] text-muted">{speaker ? "AI 스피커가 말을 겁니다" : "전화가 옵니다"}</p>
       <div className="mt-3 bg-mist px-3 py-2.5 text-[13px] leading-relaxed">
         <div className="mb-0.5 text-[10px] font-semibold text-muted">AI</div>
-        {hello} {cold}보일러 기름이 {fmtDate(v.proj.emptyDate)}쯤 떨어질 것 같아 전화드렸어요. {REASK.since}
+        {hello} {cold}보일러 기름이 {fmtDate(v.proj.emptyDate)}쯤 떨어질 것 같아 {speaker ? "말씀드려요" : "전화드렸어요"}. {REASK.since}
       </div>
       <div className="mt-3 ml-auto max-w-[80%] bg-ink px-3 py-2.5 text-[13px] leading-relaxed text-white">
         <div className="mb-0.5 text-[10px] font-semibold opacity-70">어르신</div>

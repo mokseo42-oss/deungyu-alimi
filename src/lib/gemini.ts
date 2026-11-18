@@ -8,8 +8,9 @@ export function hasGemini() {
 
 type Schema = Record<string, unknown>;
 
-// 전화에서 오래 멈추지 않게 4초 안에 답이 없으면 포기한다(그때는 낱말 규칙의 답을 쓴다)
-export async function geminiJSON<T>(system: string, user: string, schema: Schema, timeoutMs = 4000): Promise<T> {
+// 정해 둔 시간 안에 답이 없으면 포기한다(그때는 낱말 규칙·정해 둔 답을 쓴다).
+// 2026-11-18 실제 사이트에서 4초 제한에 세 번 중 두 번 걸려(성공한 한 번은 2.8초), 전화 7초·물어보기 8초로 늘렸다
+export async function geminiJSON<T>(system: string, user: string, schema: Schema, timeoutMs = 7000): Promise<T> {
   const key = process.env.GEMINI_API_KEY;
   if (!key) throw new Error("GEMINI_API_KEY 없음");
   const ctrl = new AbortController();

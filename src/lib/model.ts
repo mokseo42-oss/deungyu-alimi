@@ -211,6 +211,9 @@ export const fmtDate = (date: string | null) => {
   return `${d.getUTCMonth() + 1}월 ${d.getUTCDate()}일 (${w})`;
 };
 
+// 먼저 전화하는 날. 시연 가구는 알림 기준에 닿은 날이 오늘보다 앞일 수 있는데, 그때는 오늘 건다(알림 화면과 같은 규칙)
+export const fmtCallDay = (alertDate: string | null, today: string) => (alertDate && alertDate <= today ? "오늘" : fmtDate(alertDate));
+
 export const fmtWon = (n: number) => `${Math.round(n).toLocaleString("ko-KR")}원`;
 // 추정 금액은 만 원 단위로만 보여 준다(오차가 20% 안팎인 값을 원 단위까지 적지 않는다)
 export const fmtMan = (n: number) => `약 ${Math.round(n / 10000).toLocaleString("ko-KR")}만 원`;

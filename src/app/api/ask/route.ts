@@ -2,7 +2,7 @@
 // → 답 속 숫자를 사실 목록과 대조. 맞지 않으면 한 번 다시 쓰게 하고, 그래도 다르면 정해 둔 답을 보낸다(기름알리미와 같은 방식).
 import { NextRequest, NextResponse } from "next/server";
 import data from "@/data/stations.json";
-import { HouseFacts, PriceFacts, Topic, countNumbers, factsFor, parsePriceRule, templateAnswer, topicOf } from "@/lib/ask";
+import { HouseFacts, PriceFacts, Topic, countNumbers, emdIn, factsFor, parsePriceRule, templateAnswer, topicOf } from "@/lib/ask";
 import { numbersOk } from "@/lib/dialog";
 import { geminiJSON, hasGemini } from "@/lib/gemini";
 import { getKerosene } from "@/lib/opinet";
@@ -72,7 +72,8 @@ export async function POST(req: NextRequest) {
   }
   const q = String(body.question ?? "").slice(0, 300).trim();
   if (!q) return NextResponse.json({ error: "empty" }, { status: 400 });
-  const emd = String(body.emd ?? "두서면").slice(0, 10);
+  // 질문에 읍면 이름이 있으면("두서면 제일 싼 곳") 아래 선택칸보다 그걸 먼저 쓴다
+  const emd = emdIn(q) ?? String(body.emd ?? "두서면").slice(0, 10);
   const house = body.house ?? null;
 
   const topic = topicOf(q);
@@ -107,7 +108,7 @@ ${Object.entries(facts)
         SYSTEM,
         attempt ? `${user}\n\n주의: 앞의 답에 사실 목록에 없는 숫자가 있었다. 목록의 숫자만 그대로 옮겨 다시 써라.` : user,
         SCHEMA,
-        6000,
+        8000,
       );
       const answer = (o.answer ?? "").trim().slice(0, 700);
       if (answer && numbersOk(answer, allowed)) {
