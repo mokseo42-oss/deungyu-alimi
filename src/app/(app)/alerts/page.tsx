@@ -61,14 +61,14 @@ export default function AlertsPage() {
       <section className="card p-6">
         <h2 className="sec-title">가격 조건</h2>
         <p className="mt-1 text-[14px] text-muted">
-          홈에서 &ldquo;1,500원 밑으로 내려가면 알려 줘&rdquo;처럼 말하면 조건이 생깁니다. 최대 5개. 지금 점검은 오피넷{" "}
+          물어보기에서 &ldquo;1,500원 밑으로 내려가면 알려 줘&rdquo;처럼 말하면 조건이 생깁니다. 최대 5개. 지금 점검은 오피넷{" "}
           {st.live ? `${st.asOf} 실시간` : `${st.asOf} 저장 자료`} 최저가로 확인합니다.
         </p>
         {(s.priceRules ?? []).length === 0 ? (
           <p className="mt-3 text-[15px]">
             아직 없습니다.{" "}
             <Link href="/home" className="underline underline-offset-4">
-              홈에서 말로 걸기
+              물어보기에서 말로 걸기
             </Link>
           </p>
         ) : (

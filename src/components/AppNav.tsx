@@ -3,12 +3,12 @@ import Image from "next/image";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { resetDemo } from "@/lib/store";
-import { APP_HOME, APP_NAME, KNOC_LOGO } from "@/lib/routes";
+import { APP_HOME, APP_NAME } from "@/lib/routes";
 
 // 기능 화면 메뉴. 기름알리미와 같은 모양: 넓은 화면은 왼쪽 아이콘 세로 메뉴, 휴대폰은 아래에 떠 있는 둥근 메뉴.
 // 아이콘은 24칸 선 그림(굵기 1.8)
 const ICON: Record<string, React.ReactNode> = {
-  home: <path d="M4 10.5 12 4l8 6.5V19a1.5 1.5 0 0 1-1.5 1.5H15v-5.5H9v5.5H5.5A1.5 1.5 0 0 1 4 19z" />,
+  chat: <path d="M5 5h14a1.5 1.5 0 0 1 1.5 1.5v8A1.5 1.5 0 0 1 19 16h-9l-4 3.5V16H5a1.5 1.5 0 0 1-1.5-1.5v-8A1.5 1.5 0 0 1 5 5z" />,
   tank: (
     <>
       <rect x="6" y="3.5" width="12" height="17" rx="3" />
@@ -39,13 +39,14 @@ const ICON: Record<string, React.ReactNode> = {
 };
 
 // short: 휴대폰 아래 메뉴(일곱 칸)에 쓰는 짧은 이름
+// 순서: 서비스의 중심인 AI 전화와 알림을 앞에, 챗봇('물어보기')은 뒤에 둔다
 const LINKS = [
-  { href: APP_HOME, label: "홈", short: "홈", icon: "home" },
-  { href: "/households", label: "가구 잔량", short: "가구", icon: "tank" },
   { href: "/call", label: "AI 전화", short: "전화", icon: "phone" },
+  { href: "/alerts", label: "알림", short: "알림", icon: "bell" },
+  { href: "/households", label: "가구 잔량", short: "가구", icon: "tank" },
   { href: "/dealer", label: "판매소", short: "판매소", icon: "truck" },
   { href: "/dashboard", label: "현황판", short: "현황판", icon: "board" },
-  { href: "/alerts", label: "알림", short: "알림", icon: "bell" },
+  { href: "/home", label: "물어보기", short: "질문", icon: "chat" },
   { href: "/verify", label: "검증", short: "검증", icon: "check" },
 ];
 
@@ -73,12 +74,12 @@ function reset() {
 
 export default function AppNav() {
   const path = usePathname();
-  const on = (href: string) => (href === APP_HOME ? path === APP_HOME : path.startsWith(href));
+  const on = (href: string) => path.startsWith(href);
   return (
     <>
       {/* 넓은 화면: 왼쪽 세로 메뉴 */}
       <aside className="app-side">
-        <Link href={APP_HOME} aria-label={`${APP_NAME} 홈`}>
+        <Link href={APP_HOME} aria-label={`${APP_NAME} 처음 화면`}>
           <Image src="/brand/yuilmui-mark.png" alt="팀 유일무이 로고" width={36} height={36} priority />
         </Link>
         <nav aria-label={`${APP_NAME} 화면`} className="mt-8 flex flex-col gap-1.5">
@@ -97,19 +98,16 @@ export default function AppNav() {
         </button>
       </aside>
 
-      {/* 윗줄: 기름알리미와 같은 모양(공사 로고 | 팀 로고 + 이름). 공사 로고는 서포터즈 활동 표시 */}
+      {/* 윗줄: 팀 로고 + 이름(넓은 화면은 팀 로고가 왼쪽 메뉴에 있음). 공식 서비스로 오해하지 않게 한국석유공사 로고는 두지 않는다 */}
       <header className="app-head">
         <div className="app-head-in">
-          <Image src={KNOC_LOGO.src} alt="한국석유공사" width={KNOC_LOGO.width} height={KNOC_LOGO.height} className="h-9 w-auto" priority />
-          <span aria-hidden="true" className="h-5 w-px bg-line" />
           <Link href={APP_HOME} className="flex items-center gap-2">
             <Image src="/brand/yuilmui-mark.png" alt="" width={26} height={26} className="lg:hidden" />
             <span className="whitespace-nowrap text-[17px] font-bold tracking-tight">{APP_NAME}</span>
           </Link>
           <span className="app-badge">시연</span>
           <div className="ml-auto flex items-center gap-4 whitespace-nowrap text-[13px] text-muted">
-            {/* 휴대폰은 공사 로고가 들어가 자리가 모자라 '서비스 소개'를 뺀다 */}
-            <Link href="/" className="hidden underline-offset-4 hover:text-ink hover:underline sm:inline">
+            <Link href="/" className="underline-offset-4 hover:text-ink hover:underline">
               서비스 소개
             </Link>
             <button className="underline-offset-4 hover:text-ink hover:underline lg:hidden" onClick={reset}>
