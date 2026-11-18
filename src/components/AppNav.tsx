@@ -1,8 +1,9 @@
 "use client";
+import Image from "next/image";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { resetDemo } from "@/lib/store";
-import { APP_HOME, APP_NAME } from "@/lib/routes";
+import { APP_HOME, APP_NAME, KNOC_LOGO } from "@/lib/routes";
 
 // 기능 화면 메뉴. 기름알리미와 같은 모양: 넓은 화면은 왼쪽 아이콘 세로 메뉴, 휴대폰은 아래에 떠 있는 둥근 메뉴.
 // 아이콘은 24칸 선 그림(굵기 1.8)
@@ -48,6 +49,7 @@ const LINKS = [
   { href: "/verify", label: "검증", short: "검증", icon: "check" },
 ];
 
+
 function Icon({ name }: { name: string }) {
   return (
     <svg
@@ -76,7 +78,9 @@ export default function AppNav() {
     <>
       {/* 넓은 화면: 왼쪽 세로 메뉴 */}
       <aside className="app-side">
-        <Link href={APP_HOME} aria-label={`${APP_NAME} 홈`} className="app-orb" />
+        <Link href={APP_HOME} aria-label={`${APP_NAME} 홈`}>
+          <Image src="/brand/yuilmui-mark.png" alt="팀 유일무이 로고" width={36} height={36} priority />
+        </Link>
         <nav aria-label={`${APP_NAME} 화면`} className="mt-8 flex flex-col gap-1.5">
           {LINKS.map((l) => (
             <Link key={l.href} href={l.href} aria-current={on(l.href) ? "page" : undefined} className="app-side-link">
@@ -93,16 +97,19 @@ export default function AppNav() {
         </button>
       </aside>
 
-      {/* 윗줄: 이름과 소개로 가는 길 */}
+      {/* 윗줄: 기름알리미와 같은 모양(공사 로고 | 팀 로고 + 이름). 공사 로고는 서포터즈 활동 표시 */}
       <header className="app-head">
         <div className="app-head-in">
+          <Image src={KNOC_LOGO.src} alt="한국석유공사" width={KNOC_LOGO.width} height={KNOC_LOGO.height} className="h-9 w-auto" priority />
+          <span aria-hidden="true" className="h-5 w-px bg-line" />
           <Link href={APP_HOME} className="flex items-center gap-2">
-            <span className="app-orb app-orb-sm lg:hidden" aria-hidden="true" />
-            <span className="text-[17px] font-bold tracking-tight">{APP_NAME}</span>
+            <Image src="/brand/yuilmui-mark.png" alt="" width={26} height={26} className="lg:hidden" />
+            <span className="whitespace-nowrap text-[17px] font-bold tracking-tight">{APP_NAME}</span>
           </Link>
           <span className="app-badge">시연</span>
-          <div className="ml-auto flex items-center gap-4 text-[13px] text-muted">
-            <Link href="/" className="underline-offset-4 hover:text-ink hover:underline">
+          <div className="ml-auto flex items-center gap-4 whitespace-nowrap text-[13px] text-muted">
+            {/* 휴대폰은 공사 로고가 들어가 자리가 모자라 '서비스 소개'를 뺀다 */}
+            <Link href="/" className="hidden underline-offset-4 hover:text-ink hover:underline sm:inline">
               서비스 소개
             </Link>
             <button className="underline-offset-4 hover:text-ink hover:underline lg:hidden" onClick={reset}>

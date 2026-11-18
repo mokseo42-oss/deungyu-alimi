@@ -1,7 +1,8 @@
 "use client";
+import Image from "next/image";
 import Link from "next/link";
 import { useEffect, useState } from "react";
-import { APP_HOME, APP_NAME } from "@/lib/routes";
+import { APP_HOME, APP_NAME, KNOC_LOGO } from "@/lib/routes";
 
 const SECTIONS = [
   { href: "#about", label: "소개" },
@@ -30,9 +31,14 @@ export default function SiteNav() {
       }`}
     >
       <div className="wrap flex h-full flex-wrap items-center gap-x-10 md:flex-nowrap">
-        <Link href="/" className="flex h-14 items-center md:h-full" aria-label="등유 알리미 처음으로">
-          <span className="text-[19px] font-bold tracking-tight">등유 알리미</span>
-        </Link>
+        <div className="flex h-14 items-center gap-3 md:h-full">
+          <Image src={KNOC_LOGO.src} alt="한국석유공사" width={KNOC_LOGO.width} height={KNOC_LOGO.height} className="h-9 w-auto" priority />
+          <span aria-hidden="true" className="h-5 w-px bg-line" />
+          <Link href="/" className="flex items-center gap-2" aria-label="등유 알리미 처음으로">
+            <Image src="/brand/yuilmui-mark.png" alt="" width={26} height={26} />
+            <span className="text-[19px] font-bold tracking-tight">등유 알리미</span>
+          </Link>
+        </div>
         <nav
           aria-label="소개 페이지 구역"
           className="no-scrollbar order-last -mx-1 flex h-12 w-full items-center gap-x-5 overflow-x-auto whitespace-nowrap px-1 md:order-none md:mx-0 md:h-full md:w-auto md:flex-1 md:gap-x-9 md:px-0"
