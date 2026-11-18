@@ -58,7 +58,7 @@ function HouseCard({ v, today }: { v: View; today: string }) {
         <div>
           <div className="flex flex-wrap items-center gap-x-4 gap-y-1">
             <h2 className="text-[26px] font-light leading-snug md:text-[30px]">{h.label}</h2>
-            <StatusBadge s={v.status} />
+            <StatusBadge s={v.shown} />
           </div>
           <p className="mt-1 text-[15px] text-muted">
             {h.person} · {h.channel} · 주문 승인: {h.approval}

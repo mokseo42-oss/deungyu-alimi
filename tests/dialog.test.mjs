@@ -320,6 +320,11 @@ const urgentCases = [
   ["사람이랑 얘기할래", "human"],
   ["사람 좀 바꿔 줘", "human"],
   ["상담원 연결해 줘", "human"],
+  // Gemini가 늦어 낱말 규칙만으로 읽을 때도 놓치면 안 되는 몸 상태(11/18 실제 사이트에서 '못 알아들음'으로 빠졌다)
+  ["요새 영 기운이 없고 밥도 못 먹고 누워만 있다 아이가", "emergency"],
+  ["밥을 못 먹겠어", "emergency"],
+  ["어제 넘어져서 못 일어나", "emergency"],
+  ["열이 나", "emergency"],
   ["이거 사기 아니야?", "distrust"],
   ["못 믿겠어", "distrust"],
   ["보이스피싱 아이가", "distrust"],
@@ -334,7 +339,7 @@ for (const [text, want] of urgentCases) {
 }
 
 // 낱말만 겹치는 말은 급한 말이 아니다
-for (const text of ["보일러 잘 돌려", "병원 갔다 왔어", "안 아파", "아들 아파트에 갔다 왔어", "기름 사기 힘들어", "사람이 아니네"]) {
+for (const text of ["보일러 잘 돌려", "병원 갔다 왔어", "안 아파", "아들 아파트에 갔다 왔어", "기름 사기 힘들어", "사람이 아니네", "밥 먹었어", "열이 칸 중에 한 칸"]) {
   test(`"${text}"는 급한 말이 아니다`, () => {
     assert.equal(dialog.urgentIntent(text), null);
   });

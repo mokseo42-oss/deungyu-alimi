@@ -630,7 +630,7 @@ function CallSim({ v: live, today }: { v: View; today: string }) {
         <div className="flex flex-wrap items-center justify-between gap-2 border-b border-line px-5 py-3">
           <div>
             <div className="flex flex-wrap items-center gap-x-3 text-[17px] font-semibold">
-              {h.label} <StatusBadge s={live.status} />
+              {h.label} <StatusBadge s={live.shown} />
             </div>
             <div className="text-xs text-muted">
               {h.channel} · 주문 승인: {h.approval}
