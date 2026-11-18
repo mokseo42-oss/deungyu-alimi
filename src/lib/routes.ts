@@ -3,8 +3,6 @@ export const APP_HOME = "/home";
 // 서비스 이름. 화면의 버튼과 안내 문구가 모두 이 값을 쓴다(다른 서비스와 합칠 때는 여기만 바꾸면 된다)
 export const APP_NAME = "등유 알리미";
 
-// 한국석유공사 로고(기름알리미와 같은 파일: 공사 원본에서 바깥 여백만 잘라 냄). 서포터즈 활동 표시로 머리글에 둔다
-export const KNOC_LOGO = { src: "/brand/knoc-logo.png", width: 429, height: 208 };
 
 // 기능 화면 넷. 소개 페이지 둘러보기와 홈이 함께 쓴다
 export const SCREENS = [

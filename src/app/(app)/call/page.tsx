@@ -262,7 +262,7 @@ function CallSim({ v: live, today }: { v: View; today: string }) {
     ai(`그러실 수 있어요. 주문은 넣지 않을게요.${back}${h.family ? ` ${who}께도 오늘 연락드렸다고 알려 둘게요.` : ""}`);
     sys(`전화를 믿기 어려워하심 → 주문하지 않음${h.family ? ". 가족에게 알림" : ""}`);
     addLog(h.id, "확인 필요", "AI 전화를 믿기 어려워하심 · 주문하지 않음");
-    if (h.family) addFamily(h.id, `[등유 알리미] 오늘 부모님(${h.label})께 연락드렸는데 전화를 믿기 어려워하셨어요. 등유 알리미이 맞다고 한번 말씀해 주세요. 주문은 넣지 않았습니다.`, { kind: "전화 의심", cat: "안내", at: now() });
+    if (h.family) addFamily(h.id, `[등유 알리미] 오늘 부모님(${h.label})께 연락드렸는데 전화를 믿기 어려워하셨어요. 등유 알리미가 맞다고 한번 말씀해 주세요. 주문은 넣지 않았습니다.`, { kind: "전화 의심", cat: "안내", at: now() });
     setStage("done");
   }
 
