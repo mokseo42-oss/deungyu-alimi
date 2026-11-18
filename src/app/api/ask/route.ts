@@ -77,7 +77,7 @@ export async function POST(req: NextRequest) {
 
   const topic = topicOf(q);
   const p = await priceFacts(emd);
-  const facts = factsFor(topic, p, house);
+  const facts = factsFor(topic, p, house, q);
   const price = parsePriceRule(q);
   const base = { topic, asOf: p.asOf, ...(price ? { rule: { price, emd } } : {}) };
   // 사실 목록 + 질문 속 숫자(이용자가 말한 1,500원 같은 값)는 답에 다시 써도 된다

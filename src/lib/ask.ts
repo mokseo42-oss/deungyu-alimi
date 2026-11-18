@@ -1,7 +1,7 @@
 // 등유 챗봇(홈 화면 '무엇이든 물어보세요')의 질문 종류, 사실 목록, 정해 둔 답.
 // 원칙(기름알리미와 같음): AI는 말을 쓰고, 숫자는 계산·조회 값만 쓴다. 답 속 숫자를 사실 목록과 대조해 맞을 때만 보여 준다.
 // Gemini가 없거나 실패하거나 숫자가 맞지 않으면 여기 정해 둔 답을 쓴다.
-import { fmtDate } from "@/lib/model";
+import { addDays, fmtDate } from "@/lib/model";
 
 export type Topic =
   | "alert" // 가격 알림 조건 걸기
@@ -30,9 +30,7 @@ export type HouseFacts = {
   coldDates: string[]; // 앞으로 7일 안 한파 신호 날짜
   dealer: string;
   dealerPrice: number;
-  voucher: number; // 바우처 잔액(가상)
-  voucherDays: number | null; // 바우처로 살 수 있는 양으로 버티는 날수
-  voucherUntil: string | null;
+  ahead: number[]; // 오늘부터 날마다 쓸 양(L). 이용자가 말한 바우처 금액으로 며칠 버틸지 셀 때 쓴다
 };
 
 // 등유 가격(서버가 오피넷에서 조회)
@@ -51,6 +49,26 @@ export type PriceFacts = {
 // 석유 최고가격(정유사 공급가 상한). 등유는 리터에 1,380원으로 묶여 있음(10차 9/19, 11·12차 동결. 06 기획안 기준)
 export const KEROSENE_CAP = { price: 1380, note: "12차 고시(11월 14일 적용)까지 같은 값" };
 export const VOUCHER_UNTIL = "2027년 5월 31일";
+// 잔액 확인 방법(에너지바우처 누리집 '잔액조회' 안내). 잔액은 기관과 연계하기 전에는 챗봇이 알 수 없다
+export const VOUCHER_CHECK = "에너지바우처 통합 상담센터(1600-3190, 평일 오전 9시~오후 6시)나 복지로 누리집의 '나의 복지지갑'";
+
+// "바우처 30만 원 남았는데" → 300000. 챗봇은 바우처 잔액을 모르므로 이용자가 말한 금액으로만 계산한다
+export function parseWon(q: string): number | null {
+  const s = q.replace(/,/g, "");
+  const m = s.match(/(\d+) ?만 ?(\d+)? ?원?/);
+  const n = m ? Number(m[1]) * 10000 + Number(m[2] ?? 0) : Number(s.match(/(\d{4,7}) ?원/)?.[1] ?? NaN);
+  return n >= 1000 && n <= 2000000 ? n : null;
+}
+
+// 그 금액으로 살 수 있는 양을 이 집이 쓰는 양으로 며칠 쓰나(계산 기간 안에 다 못 쓰면 days = null)
+function voucherPlan(amount: number, h: HouseFacts) {
+  const liters = amount / h.dealerPrice;
+  const ahead = (Array.isArray(h.ahead) ? h.ahead : []).slice(0, 400).map(Number).filter(Number.isFinite);
+  let left = liters;
+  let n = 0;
+  for (; n < ahead.length && left > 0; n++) left -= ahead[n];
+  return left > 0 ? { liters, days: null, until: null } : { liters, days: n, until: addDays(h.today, n) };
+}
 
 export function topicOf(q: string): Topic {
   const s = q.replace(/\s+/g, " ");
@@ -92,7 +110,7 @@ const diffTxt = (d: number) => (d === 0 ? "어제와 같음" : `어제보다 ${M
 const dates = (ds: string[]) => ds.map((d) => fmtDate(d)).join(", ");
 
 // 답에 쓸 수 있는 사실 목록. Gemini에 그대로 보여 주고, 답 속 숫자를 이 목록과 대조한다
-export function factsFor(topic: Topic, p: PriceFacts, h: HouseFacts | null): Record<string, string> {
+export function factsFor(topic: Topic, p: PriceFacts, h: HouseFacts | null, q = ""): Record<string, string> {
   const f: Record<string, string> = {};
   f["가격 기준"] = p.live ? `오피넷 ${p.asOf} 조회` : `오피넷 저장 자료 ${p.asOf}`;
   if (p.ujuAvg != null) f["울주군 등유 평균"] = `${perL(p.ujuAvg)}${p.ujuDiff != null ? `, ${diffTxt(p.ujuDiff)}` : ""}`;
@@ -118,10 +136,18 @@ export function factsFor(topic: Topic, p: PriceFacts, h: HouseFacts | null): Rec
     f["반 드럼(100L) 값"] = won(100 * h.dealerPrice);
     f["한 드럼(200L) 값"] = won(200 * h.dealerPrice);
     f["탱크에 들어갈 자리"] = `약 ${L(Math.max(0, h.tank - h.level))}`;
-    f["바우처 잔액(가상)"] = won(h.voucher);
-    if (h.voucher > 0) {
-      f["바우처로 살 수 있는 양"] = `약 ${L(h.voucher / h.dealerPrice)}`;
-      if (h.voucherDays != null) f["바우처로 버티는 기간"] = `약 ${h.voucherDays}일${h.voucherUntil ? `, ${fmtDate(h.voucherUntil)}쯤까지` : ""}`;
+  }
+  if (topic === "voucher") {
+    f["바우처 잔액 확인"] = `${VOUCHER_CHECK}. 챗봇은 잔액을 알 수 없음`;
+    const amount = parseWon(q);
+    const price = h ? h.dealerPrice : p.ujuAvg;
+    if (amount && price) {
+      f["말씀하신 바우처 금액"] = won(amount);
+      f["그 금액으로 살 수 있는 양"] = `약 ${L(amount / price)} (${h ? h.dealer : "울주군 평균"} ${perL(price)} 기준)`;
+      if (h) {
+        const v = voucherPlan(amount, h);
+        f["그 양으로 버티는 기간"] = v.days != null && v.until ? `약 ${v.days}일, ${fmtDate(v.until)}쯤까지` : "이번 겨울 계산 기간 안에는 다 쓰지 않음";
+      }
     }
   }
   return f;
@@ -161,11 +187,17 @@ export function templateAnswer(topic: Topic, p: PriceFacts, h: HouseFacts | null
       return h.coldDates.length
         ? `앞으로 7일 안에 ${dates(h.coldDates)} 한파 신호가 있어요. 앞으로 7일 쓸 양은 약 ${L(h.use7)}로, 지난 7일(약 ${L(h.usual7)})보다 많아요. 한파가 있으면 여유분을 넉넉히 잡아 더 일찍 전화드려요.`
         : `앞으로 7일 안에는 한파 신호가 없어요. 7일 쓸 양은 약 ${L(h.use7)}로, 지난 7일은 약 ${L(h.usual7)}였어요.`;
-    case "voucher":
-      if (!h) return `에너지바우처는 ${VOUCHER_UNTIL}까지 쓸 수 있어요. ${needHouse}`;
-      return h.voucher > 0
-        ? `바우처 잔액 ${won(h.voucher)}이면 ${h.dealer} 가격(${perL(h.dealerPrice)})으로 약 ${L(h.voucher / h.dealerPrice)}를 살 수 있어요.${h.voucherDays != null ? ` 이 집이 쓰는 양으로 약 ${h.voucherDays}일${h.voucherUntil ? `, ${fmtDate(h.voucherUntil)}쯤까지` : ""} 버틸 수 있어요.` : ""} 사용기한은 ${VOUCHER_UNTIL}이에요.`
-        : `이 집은 바우처 잔액이 없는 것으로 되어 있어요. 대상인지는 주민센터나 생활지원사가 확인해 드려요. 사용기한은 ${VOUCHER_UNTIL}이에요.`;
+    case "voucher": {
+      const until = `바우처는 ${VOUCHER_UNTIL}까지 쓰실 수 있어요.`;
+      const amount = parseWon(q);
+      const price = h ? h.dealerPrice : p.ujuAvg;
+      if (!amount || !price)
+        return `${until} 남은 금액은 제가 알 수 없어서, ${VOUCHER_CHECK}에서 확인하셔야 해요. '바우처 ○○만 원 남았는데 얼마나 버텨?'처럼 금액을 넣어 물어보시면 며칠 버틸지 계산해 드려요.`;
+      const buy = `바우처 ${won(amount)}이면 ${h ? `${h.dealer} 가격` : "울주군 평균 가격"}(${perL(price)})으로 약 ${L(amount / price)}를 살 수 있어요.`;
+      if (!h) return `${buy} 며칠 버틸지는 ${needHouse} ${until}`;
+      const v = voucherPlan(amount, h);
+      return `${buy} ${v.days != null && v.until ? `이 집이 쓰는 양으로 약 ${v.days}일, ${fmtDate(v.until)}쯤까지 쓰실 수 있어요.` : "이 집이 쓰는 양으로는 이번 겨울 계산 기간 안에 다 쓰지 않으실 것 같아요."} ${until}`;
+    }
     case "amount":
       if (!h) return `늘 시키시는 판매소 가격으로 계산해 드려요. ${needHouse}`;
       return `${h.dealer} 가격(${perL(h.dealerPrice)})으로 반 드럼(100L)은 ${won(100 * h.dealerPrice)}, 한 드럼(200L)은 ${won(200 * h.dealerPrice)}이에요. 지금 탱크에 들어갈 자리는 약 ${L(Math.max(0, h.tank - h.level))}예요.`;
@@ -192,6 +224,6 @@ export function templateAnswer(topic: Topic, p: PriceFacts, h: HouseFacts | null
 export const countNumbers = (text: string) => (text.replace(/,/g, "").match(/\d+(\.\d+)?/g) ?? []).length;
 
 export const SUGGEST = {
-  cards: ["우리 동네 제일 싼 등유 어디야?", "우리 집 기름 언제 떨어져?", "이번 주 한파 오면 얼마나 더 써?", "바우처로 얼마나 버틸 수 있어?"],
+  cards: ["우리 동네 제일 싼 등유 어디야?", "우리 집 기름 언제 떨어져?", "이번 주 한파 오면 얼마나 더 써?", "바우처 30만 원 남았는데 얼마나 버텨?"],
   chips: ["반 드럼 넣으면 얼마야?", "요즘 등유값 왜 이래?", "1,500원 밑으로 내려가면 알려 줘"],
 };

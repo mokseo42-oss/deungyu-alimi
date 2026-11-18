@@ -3,7 +3,7 @@ import { test } from "node:test";
 import assert from "node:assert/strict";
 import { register } from "node:module";
 register("./alias-hooks.mjs", import.meta.url);
-const { josa, topicOf, parsePriceRule, factsFor, templateAnswer, SUGGEST, countNumbers } = await import("../src/lib/ask.ts");
+const { josa, topicOf, parsePriceRule, parseWon, factsFor, templateAnswer, SUGGEST, countNumbers } = await import("../src/lib/ask.ts");
 const { numbersOk } = await import("../src/lib/dialog.ts");
 
 const P = {
@@ -31,10 +31,44 @@ const H = {
   coldDates: ["2026-11-19", "2026-11-20"],
   dealer: "두서 ○○상회",
   dealerPrice: 1580,
-  voucher: 442200,
-  voucherDays: 38,
-  voucherUntil: "2026-12-24",
+  ahead: Array(60).fill(8), // 오늘부터 날마다 쓸 양(L)
 };
+const allow = (q, facts) => ({ 질문: q, ...Object.fromEntries(Object.entries(facts).map(([k, v]) => [k, `${k} ${v}`])) });
+
+// 바우처 잔액은 기관과 연계하기 전에는 알 수 없다. 챗봇은 잔액을 말하지 않고, 이용자가 말한 금액으로만 계산한다
+test("바우처 금액 읽기", () => {
+  assert.equal(parseWon("바우처 30만 원 남았는데 얼마나 버텨?"), 300000);
+  assert.equal(parseWon("44만 2,200원 남았어"), 442200);
+  assert.equal(parseWon("바우처 300,000원 있어"), 300000);
+  assert.equal(parseWon("바우처로 얼마나 버틸 수 있어?"), null);
+});
+
+test("바우처: 금액을 말하지 않으면 잔액 없이 확인 방법을 알려 준다", () => {
+  const q = "바우처로 얼마나 버틸 수 있어?";
+  for (const h of [H, null]) {
+    const facts = factsFor("voucher", P, h, q);
+    assert.ok(!Object.keys(facts).some((k) => /바우처 잔액\(/.test(k)), "가상 잔액이 사실 목록에 있음");
+    const a = templateAnswer("voucher", P, h, q);
+    assert.match(a, /1600-3190/);
+    assert.doesNotMatch(a, /442/);
+    assert.ok(numbersOk(a, allow(q, facts)), a);
+  }
+});
+
+test("바우처: 말한 금액으로 살 수 있는 양과 버티는 날을 계산한다", () => {
+  const q = "바우처 30만 원 남았는데 얼마나 버텨?";
+  // 300,000 ÷ 1,580 = 약 190L. 하루 8L면 24일째에 다 씀(11/16 + 24일 = 12/10)
+  const a = templateAnswer("voucher", P, H, q);
+  assert.match(a, /300,000원/);
+  assert.match(a, /약 190L/);
+  assert.match(a, /약 24일/);
+  assert.match(a, /12월 10일/);
+  assert.ok(numbersOk(a, allow(q, factsFor("voucher", P, H, q))), a);
+  // 집을 고르지 않으면 울주 평균 가격으로 양만 셈한다
+  const b = templateAnswer("voucher", P, null, q);
+  assert.match(b, /약 189L/);
+  assert.ok(numbersOk(b, allow(q, factsFor("voucher", P, null, q))), b);
+});
 
 test("추천 질문은 모두 알맞은 종류로 간다", () => {
   assert.equal(topicOf(SUGGEST.cards[0]), "cheapest");

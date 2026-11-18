@@ -34,16 +34,8 @@ function houseFacts(v: View, today: string): HouseFacts {
   const level = Math.max(0, proj.levelToday);
   const coldDates: string[] = [];
   for (let i = todayIdx; i < Math.min(days.length, todayIdx + 7); i++) if (isColdWave(days, i)) coldDates.push(days[i].date);
-  // 바우처로 살 수 있는 양을 이 집이 쓰는 양으로 며칠 쓰나
-  let voucherDays: number | null = null;
-  let voucherUntil: string | null = null;
-  if (h.voucherLeft > 0) {
-    let left = h.voucherLeft / v.price;
-    let n = 0;
-    for (let i = todayIdx; i < days.length && left > 0; i++, n++) left -= dailyUse(params, days[i]);
-    voucherDays = n;
-    voucherUntil = days[Math.min(days.length - 1, todayIdx + n)]?.date ?? null;
-  }
+  // 오늘부터 날마다 쓸 양. 이용자가 말한 바우처 금액으로 며칠 버틸지 서버가 셈한다(바우처 잔액은 보내지 않는다)
+  const ahead = days.slice(todayIdx).map((d) => Math.round(dailyUse(params, d) * 10) / 10);
   return {
     today,
     label: h.label,
@@ -58,9 +50,7 @@ function houseFacts(v: View, today: string): HouseFacts {
     coldDates,
     dealer: h.dealer.replace(" (가상)", ""),
     dealerPrice: v.price,
-    voucher: h.voucherLeft,
-    voucherDays,
-    voucherUntil,
+    ahead,
   };
 }
 
