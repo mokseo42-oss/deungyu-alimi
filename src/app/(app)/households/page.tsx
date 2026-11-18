@@ -4,7 +4,7 @@ import { useState } from "react";
 import LevelChart from "@/components/LevelChart";
 import { Loading, SightGauge, StatusBadge, WeatherNote } from "@/components/ui";
 import { useHouseholds, View } from "@/lib/useModel";
-import { daysBetween, fmtDate, fmtL, fmtMan, fmtWon } from "@/lib/model";
+import { daysBetween, fmtCallDay, fmtDate, fmtL, fmtMan, fmtWon } from "@/lib/model";
 import { REGION_MEDIAN_K } from "@/data/households";
 import { MONTHLY_HDD } from "@/data/ulju";
 import { update } from "@/lib/store";
@@ -91,7 +91,7 @@ function HouseCard({ v, today }: { v: View; today: string }) {
           />
           <Fig
             label="먼저 전화하는 날"
-            value={fmtDate(proj.alertDate)}
+            value={fmtCallDay(proj.alertDate, today)}
             sub={`소진 3주 안 · ${proj.nextWeekCold ? "한파 예보로 여유분 70L" : "7일 쓸 양 + 50L 아래"}`}
           />
           {v.shortfall && (

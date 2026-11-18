@@ -11,10 +11,11 @@ import {
   URGENT,
   Understood,
   classify,
-  isQuestion,
+
   numbersOk,
   preferRuleNumbers,
   ruleIsEnough,
+  ruleQuestion,
   safeIntent,
 } from "@/lib/dialog";
 import { GEMINI_MODEL, geminiJSON, hasGemini } from "@/lib/gemini";
@@ -150,9 +151,9 @@ export async function POST(req: NextRequest) {
   if (!allowed) return NextResponse.json({ error: "bad stage" }, { status: 400 });
 
   const ruleIntent = classify(text, tank, stage);
-  // 낱말 규칙의 답. 규칙이 못 읽은 질문에는 "못 알아들었어요" 대신 모른다고 답한다
+  // 낱말 규칙의 답. 규칙이 못 읽은 질문 가운데 정해 둔 답이 있는 것만 질문으로 넘긴다(나머지는 못 알아들은 말)
   const rule = (note: string, direct = false): Understood =>
-    ruleIntent.t === "unknown" && isQuestion(text)
+    ruleQuestion(text, ruleIntent)
       ? { intent: { t: "question" }, answer: DONT_KNOW, source: "rule", note }
       : { intent: ruleIntent, source: "rule", direct, note };
   if (ruleIsEnough(text, ruleIntent)) return NextResponse.json(rule("분명한 말이라 낱말 규칙으로 바로 읽음", true));
@@ -172,7 +173,7 @@ ${history.join("\n") || "(없음)"}
 어르신의 마지막 대답: "${text}"`;
 
   try {
-    const o = await geminiJSON<Out>(SYSTEM, user, SCHEMA);
+    const o = await geminiJSON<Out>(SYSTEM, user, SCHEMA, 7000);
     if (!allowed.includes(o.intent)) o.intent = "unknown";
     const intent = safeIntent(preferRuleNumbers(toIntent(o, tank), ruleIntent), text, stage);
     let say = (o.say ?? "").trim().slice(0, 60);

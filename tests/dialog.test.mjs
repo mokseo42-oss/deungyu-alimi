@@ -383,3 +383,11 @@ test("한글로 쓴 날수·기간도 사실 목록에 없으면 막는다", () 
   assert.equal(dialog.numbersOk("이틀 걸려요", { 배달: "보통 이틀" }), true);
   assert.equal(dialog.numbersOk("배달 올 때 카드로 내시면 돼요", F), true);
 });
+
+// Gemini가 실패해 낱말 규칙만으로 읽을 때, 정해 둔 답이 없는 질문 꼴의 말은 못 알아들은 말로 친다.
+// 그래야 "손주가 언제 온다 했더라" 같은 말이 쌓여 가족·생활지원사에게 넘어간다
+test("규칙만으로 읽을 때: 정해 둔 답이 없는 질문은 못 알아들은 말", () => {
+  assert.equal(dialog.ruleQuestion(dialog.CONFUSED_SAMPLE, { t: "unknown" }), false);
+  assert.equal(dialog.ruleQuestion("값은 언제 내?", { t: "unknown" }), true);
+  assert.equal(dialog.ruleQuestion("값은 언제 내?", { t: "yes" }), false);
+});

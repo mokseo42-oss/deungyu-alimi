@@ -201,7 +201,7 @@ function Upcoming({ v, today }: { v: View; today: string }) {
     // 알림일이 이미 지났으면(아직 전화를 안 한 시연 상태) 오늘 건다
     when = `${proj.alertDate <= today ? "오늘" : fmtDate(proj.alertDate)} 오전 10시`;
     what = `AI ${h.channel === "AI 스피커" ? "스피커 안내" : "전화"} → 못 받으시면 오후 1시 ${sms}${h.family ? " · 가족 알림톡" : ""} (안내)`;
-    preview = `[등유 알리미] 어르신, 보일러 기름이 ${fmtDate(proj.emptyDate)}쯤 떨어질 것 같아요. 기름을 넣으시려면 이 번호로 전화 주세요.`;
+    preview = `[등유 알리미] 어르신, 보일러 기름이 ${fmtDate(proj.emptyDate)}쯤 떨어질 것 같아요. 기름을 넣으시려면 ${h.channel === "AI 스피커" ? "AI 스피커에 말씀해 주세요" : "이 번호로 전화 주세요"}.`;
   } else {
     when = "당분간 없음";
     what = "이번 겨울 안에 떨어질 일이 없어 보입니다";

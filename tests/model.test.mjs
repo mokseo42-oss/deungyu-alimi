@@ -5,7 +5,15 @@ import assert from "node:assert/strict";
 import { register } from "node:module";
 
 register("./alias-hooks.mjs", import.meta.url); // model.ts 안의 "@/data/…" 경로를 풀어 준다
-const { project, learnK, gaugeLow, keepLowK } = await import("../src/lib/model.ts");
+const { project, learnK, gaugeLow, keepLowK, fmtCallDay } = await import("../src/lib/model.ts");
+
+// 시연 가구는 알림 기준에 닿은 날이 오늘보다 앞일 수 있다. 화면마다 지난 날짜와 '오늘'이 섞여 보이지 않게 한다
+test("먼저 전화하는 날이 지났으면 '오늘'로 보인다", () => {
+  assert.equal(fmtCallDay("2026-11-14", "2026-11-18"), "오늘");
+  assert.equal(fmtCallDay("2026-11-18", "2026-11-18"), "오늘");
+  assert.equal(fmtCallDay(null, "2026-11-18"), "—");
+  assert.match(fmtCallDay("2026-11-26", "2026-11-18"), /11월 26일/);
+});
 
 // 날마다 같은 기온인 가짜 날씨. 평균 18℃면 난방도일 0, 4℃면 14
 const day = (i) => new Date(Date.UTC(2026, 0, 1 + i)).toISOString().slice(0, 10);

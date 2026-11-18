@@ -4,7 +4,7 @@ import { Suspense, useEffect, useRef, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Loading, StatusBadge } from "@/components/ui";
 import { useHouseholds, View, suggestLiters } from "@/lib/useModel";
-import { fmtDate, fmtL, fmtWon, gaugeLow, keepLowK, learnK, project } from "@/lib/model";
+import { fmtCallDay, fmtDate, fmtL, fmtWon, gaugeLow, keepLowK, learnK, project } from "@/lib/model";
 import { REGION_MEDIAN_K } from "@/data/households";
 import { CONFUSED_SAMPLE, Intent, QUICK, REASK, Stage, faqTopic, understand } from "@/lib/dialog";
 import { DELIVERED, Note, stampAt } from "@/lib/notify";
@@ -173,7 +173,7 @@ function CallSim({ v: live, today }: { v: View; today: string }) {
       // 통화에서 눈금 답으로 잔량이 고쳐져도, 생활지원사가 '해결'로 닫을 때까지 '살펴봐 주세요'에 남긴다
       update((st) => ({ ...st, checks: { ...st.checks, [h.id]: st.checks[h.id] ?? "요청" } }));
       ai(
-        `${hello} 지난번 넣으신 기름이 ${fmtDate(p.emptyDate)}쯤 다 됐을 것 같은데, 아직 주문이 없으셔서 안부 겸 전화드렸어요. 요즘 보일러는 잘 돌리고 계세요?`,
+        `${hello} 지난번 넣으신 기름이 ${fmtDate(p.emptyDate)}쯤 다 됐을 것 같은데, 아직 주문이 없으셔서 안부 겸 ${phone ? "전화드렸어요" : "말씀드려요"}. 요즘 보일러는 잘 돌리고 계세요?`,
       );
       setStage("checkin");
       return;
@@ -187,21 +187,25 @@ function CallSim({ v: live, today }: { v: View; today: string }) {
     // 눈금은 필수로 묻지 않는다(탱크가 밖에 있으면 추운 날 나가 봐야 한다). 대신 다른 데서 넣었는지 묻는다
     const cold = p.nextWeekCold ? "이번 주 한파 예보가 있어서 " : "날이 추워지면서 ";
     const when = p.emptyDate && p.emptyDate <= today ? "거의 떨어졌을 것 같아" : `${fmtDate(p.emptyDate)}쯤 떨어질 것 같아`;
-    ai(`${hello} ${cold}보일러 기름이 ${when} 전화드렸어요. ${REASK.since}`);
+    ai(`${hello} ${cold}보일러 기름이 ${when} ${phone ? "전화드렸어요" : "말씀드려요"}. ${REASK.since}`);
     setStage("since");
   }
 
   function noAnswer() {
     window.speechSynthesis?.cancel();
     setMsgs([]);
-    sys("전화를 받지 않으셨습니다. 3시간 뒤 다시 걸었지만 받지 않으셨습니다.");
+    sys(
+      phone
+        ? "전화를 받지 않으셨습니다. 3시간 뒤 다시 걸었지만 받지 않으셨습니다."
+        : "AI 스피커 안내에 답이 없으셨습니다. 3시간 뒤 다시 말을 걸었지만 답이 없으셨습니다.",
+    );
     sys(`두 번 연속 무응답 → ${h.family ?? "가족 없음"}과 생활지원사에게 알림`);
-    addLog(h.id, "안부 확인 필요", "AI 전화 두 번 무응답");
-    if (h.family) addFamily(h.id, `[등유 알리미] 오늘 부모님(${h.label})께 두 번 전화드렸지만 받지 않으셨어요. 안부 확인 부탁드려요.`, { kind: "무응답", cat: "긴급", at: stampAt(today, 13) });
+    addLog(h.id, "안부 확인 필요", phone ? "AI 전화 두 번 무응답" : "AI 스피커 두 번 무응답");
+    if (h.family) addFamily(h.id, `[등유 알리미] 오늘 부모님(${h.label})께 ${phone ? "두 번 전화드렸지만 받지 않으셨어요" : "AI 스피커로 두 번 말씀드렸지만 답이 없으셨어요"}. 안부 확인 부탁드려요.`, { kind: "무응답", cat: "긴급", at: stampAt(today, 13) });
     // 전화를 못 받으셔도 어르신이 직접 알 수 있게 문자로도 남긴다
     const p = live.proj;
     const when = p.emptyDate && p.emptyDate <= today ? "거의 다 떨어졌을 것 같아요" : `${fmtDate(p.emptyDate)}쯤 떨어질 것 같아요`;
-    addElder(h.id, `[등유 알리미] 어르신, 보일러 기름이 ${when}. 기름을 넣으시려면 이 번호로 전화 주세요.`, { kind: "소진 예상", cat: "안내", at: stampAt(today, 13) });
+    addElder(h.id, `[등유 알리미] 어르신, 보일러 기름이 ${when}. 기름을 넣으시려면 ${phone ? "이 번호로 전화 주세요" : "AI 스피커에 말씀해 주세요"}.`, { kind: "소진 예상", cat: "안내", at: stampAt(today, 13) });
     sys(phone ? "어르신 휴대폰에도 문자로 알림" : "AI 스피커가 알림 말을 남겨 둠");
     update((st) => ({ ...st, checks: { ...st.checks, [h.id]: st.checks[h.id] ?? "요청" } }));
     setStage("done");
@@ -397,7 +401,7 @@ function CallSim({ v: live, today }: { v: View; today: string }) {
       오늘: fmtDate(today),
       "오늘 남은 기름(추정)": fmtL(Math.max(0, level)),
       "예상 소진일": fmtDate(p.emptyDate),
-      "다음 연락 예정일": fmtDate(p.alertDate),
+      "다음 연락 예정일": fmtCallDay(p.alertDate, today),
       "탱크 크기": `${h.tank}리터`,
       "단골 판매소": dealer,
       "단골 판매소 가격": `리터에 ${v.price.toLocaleString()}원`,
@@ -417,7 +421,7 @@ function CallSim({ v: live, today }: { v: View; today: string }) {
 
   // 자주 나오는 질문의 답. 내용은 facts()와 같아야 한다
   const FAQ: Record<string, string | null> = {
-    who: `울주군 등유 알리미이에요. 기름이 떨어지기 전에 먼저 연락드리는 AI예요.${phone ? " 미심쩍으시면 끊고, 저장해 두신 등유 알리미 번호로 다시 거셔도 돼요." : ""}`,
+    who: `울주군 등유 알리미예요. 기름이 떨어지기 전에 먼저 연락드리는 AI예요.${phone ? " 미심쩍으시면 끊고, 저장해 두신 등유 알리미 번호로 다시 거셔도 돼요." : ""}`,
     pay: "값은 배달 올 때 카드나 국민행복카드로 직접 내시면 돼요. 저는 돈이나 카드 번호를 묻지 않아요.",
     delivery: "주문하시면 판매소에서 확인 전화를 드리고, 보통 1~3일 안에 갖다 드려요.",
     level:
@@ -542,7 +546,7 @@ function CallSim({ v: live, today }: { v: View; today: string }) {
       }
       if (it.t === "no") {
         // 어르신이 먼저 건 전화에서는 "내일 다시 여쭤볼게요"라고 하지 않는다(먼저 전화할 때가 아닐 수 있다)
-        ai(`알겠습니다. 주문하지 않을게요. 필요하시면 언제든 이 번호로 말씀해 주세요.${inbound ? "" : " 내일 다시 여쭤볼게요."}`);
+        ai(`알겠습니다. 주문하지 않을게요. 필요하시면 언제든 ${phone ? "이 번호로 전화 주세요" : "말씀해 주세요"}.${inbound ? "" : " 내일 다시 여쭤볼게요."}`);
         addLog(h.id, "안내만", "가격 안내 후 주문 안 함");
         setStage("done");
         return;
@@ -661,7 +665,7 @@ function CallSim({ v: live, today }: { v: View; today: string }) {
                     {phone ? "어르신이 먼저 겁니다" : "어르신이 먼저 말을 겁니다"}
                   </button>
                   <button className="btn" onClick={noAnswer}>
-                    전화를 안 받으면?
+                    {phone ? "전화를 안 받으면?" : "답이 없으시면?"}
                   </button>
                 </div>
               </div>
@@ -755,7 +759,7 @@ function CallSim({ v: live, today }: { v: View; today: string }) {
             <Pair k="오늘 잔량(추정)" v={fmtL(Math.max(0, v.proj.levelToday))} />
             <Pair k="눈금 반영 잔량" v={stage !== "idle" && level !== Math.max(0, v.proj.levelToday) ? fmtL(level) : "—"} />
             <Pair k="예상 소진일" v={fmtDate(v.proj.emptyDate)} />
-            <Pair k="알림일" v={fmtDate(v.proj.alertDate)} />
+            <Pair k="알림일" v={fmtCallDay(v.proj.alertDate, today)} />
             <Pair k="단골 판매소 가격" v={`${v.price.toLocaleString()}원/L`} />
             <Pair
               k={`${h.emd} 주유소 최저 (오피넷 ${asOf})`}
