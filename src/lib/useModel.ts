@@ -9,6 +9,7 @@ import {
   Status,
   addDays,
   anchorStart,
+  todayKST,
   extendWithClimate,
   indexOfDate,
   project,
@@ -25,6 +26,8 @@ function loadWeather() {
   if (!weatherPromise) {
     weatherPromise = fetch("/api/weather")
       .then((r) => r.json())
+      // 서버는 응답을 저장해 두므로 '오늘'이 지난 날일 수 있다. 더 늦은 쪽을 오늘로 쓴다(브라우저 시계가 늦으면 서버 날짜)
+      .then((w: Weather) => ({ ...w, today: todayKST() > w.today ? todayKST() : w.today }))
       .catch((e) => {
         weatherPromise = null;
         throw e;
