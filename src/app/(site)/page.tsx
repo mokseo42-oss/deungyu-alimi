@@ -60,7 +60,7 @@ export default function Home() {
       </section>
 
       <section id="about" className="wrap grid gap-8 py-20 md:grid-cols-2 md:gap-16 md:py-32">
-        <h2 className="text-[22px] font-normal leading-[1.6] md:text-[24px]">
+        <h2 className="text-[22px] font-bold leading-[1.5] tracking-tight md:text-[24px]">
           도시가스 집은 겪지 않는
           <br />
           겨울 걱정
@@ -86,7 +86,7 @@ export default function Home() {
       </section>
 
       <section id="facts" className="wrap pb-20 md:pb-28">
-        <h2 className="text-[22px] md:text-[24px]">전국의 등유 가구</h2>
+        <h2 className="text-[22px] font-bold tracking-tight md:text-[24px]">전국의 등유 가구</h2>
         <dl className="mt-10 grid grid-cols-1 gap-y-12 sm:grid-cols-2 lg:grid-cols-4">
           {FACTS.map((f) => (
             <div key={f.l} className="border-l border-[#a9a9a9] py-1 pl-6 pr-4 md:pl-8">
@@ -100,7 +100,7 @@ export default function Home() {
 
       <section className="wrap grid gap-10 pb-20 md:grid-cols-[minmax(0,1fr)_minmax(0,2fr)] md:gap-16 md:pb-32">
         <div>
-          <h2 className="text-[22px] md:text-[24px]">울주군에서 먼저 시작하는 이유</h2>
+          <h2 className="text-[22px] font-bold tracking-tight md:text-[24px]">울주군에서 먼저 시작하는 이유</h2>
           <p className="mt-5 text-[17px] font-light leading-[1.75]">
             도시가스가 닿지 않는 산골 마을이 많고 어르신 비율이 높습니다. 여기서 맞는지 확인한 뒤, 면 지역이 많은 다른 시군으로
             넓힙니다. 기온만 그 지역 것으로 바꾸면 같은 계산을 쓸 수 있습니다.
@@ -119,14 +119,14 @@ export default function Home() {
 
       <section id="who" className="border-t border-line">
         <div className="wrap py-20 md:py-28">
-          <h2 className="text-[22px] md:text-[24px]">누구를 위한 서비스인가요</h2>
+          <h2 className="text-[22px] font-bold tracking-tight md:text-[24px]">누구를 위한 서비스인가요</h2>
           <p className="mt-5 max-w-[40em] text-[17px] font-light leading-[1.75]">
             지키려는 분은 혼자 사시는 어르신입니다. 어르신은 전화만 받으시고, 화면은 어르신을 돌보는 사람들이 봅니다.
           </p>
           <ul className="mt-10 grid gap-y-8 md:grid-cols-4">
             {WHO.map((w, i) => (
               <li key={w.t} className={`border-l py-1 pl-6 pr-4 ${i === 0 ? "border-fuel" : "border-line"}`}>
-                <h3 className="text-[19px] font-medium">{w.t}</h3>
+                <h3 className="text-[19px] font-semibold">{w.t}</h3>
                 <p className="mt-3 text-[16px] font-light leading-relaxed">{w.d}</p>
               </li>
             ))}
@@ -136,7 +136,7 @@ export default function Home() {
 
       <section id="model" className="bg-mist">
         <div className="wrap py-20 md:py-28">
-          <h2 className="text-[22px] md:text-[24px]">기름이 떨어질 날을 어떻게 아나요</h2>
+          <h2 className="text-[22px] font-bold tracking-tight md:text-[24px]">기름이 떨어질 날을 어떻게 아나요</h2>
           <p className="mt-8 max-w-4xl text-[clamp(22px,2.6vw,32px)] font-extralight leading-[1.5]">
             추운 날일수록 기름을 많이 씁니다. 마지막으로 넣은 양에서 날마다 쓴 만큼을 빼면 남은 양이 나옵니다.
           </p>
@@ -161,14 +161,14 @@ export default function Home() {
       <ScreenTour />
 
       <section id="data" className="wrap py-20 md:py-32">
-        <h2 className="text-[22px] md:text-[24px]">이 데모에서 실제인 것과 가상인 것</h2>
+        <h2 className="text-[22px] font-bold tracking-tight md:text-[24px]">이 데모에서 실제인 것과 가상인 것</h2>
         <p className="mt-6 max-w-4xl text-[17px] leading-relaxed md:text-[18px]">
           울주군이나 한국석유공사가 운영하는 공식 서비스가 아닙니다. 한국석유공사 AI·데이터 서포터즈 팀 유일무이가 제안한 아이디어를
           보여 주려고 만든 시연용입니다.
         </p>
         <div className="mt-10 grid gap-12 md:grid-cols-2 md:gap-16">
           <div className="border-t border-ink pt-5">
-            <h3 className="text-[20px] font-medium">실제 자료</h3>
+            <h3 className="text-[20px] font-semibold">실제 자료</h3>
             <ul className="mt-4 text-[16px] md:text-[17px]">
               <li className="border-b border-line py-3">울주군 12개 읍면 기온과 16일 예보 (Open-Meteo)</li>
               <li className="border-b border-line py-3">울주군 주유소 등유 가격 (오피넷 실시간 최저가 20곳 + 2026-09-19 저장 자료 39곳)</li>
@@ -177,7 +177,7 @@ export default function Home() {
             </ul>
           </div>
           <div className="border-t border-ink pt-5">
-            <h3 className="text-[20px] font-medium">가상</h3>
+            <h3 className="text-[20px] font-semibold">가상</h3>
             <ul className="mt-4 text-[16px] md:text-[17px]">
               <li className="border-b border-line py-3">A·B·C 가구와 현황판의 등록 가구</li>
               <li className="border-b border-line py-3">○○상회 같은 판매소 이름과 배달 가격, 바우처 잔액</li>
@@ -196,7 +196,7 @@ export default function Home() {
 
       <section className="bg-mist">
         <div className="wrap flex flex-col items-start gap-8 py-20 md:flex-row md:items-center md:justify-between md:py-24">
-          <h2 className="text-[26px] font-light leading-snug md:text-[32px]">
+          <h2 className="text-[26px] font-bold leading-snug tracking-tight md:text-[32px]">
             울주군 시연 가구로
             <br />
             직접 써 보세요

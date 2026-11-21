@@ -62,7 +62,7 @@ export default function ScreenTour() {
         <div className="wrap tour-in w-full">
           <header className="text-center">
             <p className="text-[16px] md:text-[17px]">모두를 위한 등유 알리미</p>
-            <h2 className="mt-2 text-[26px] font-light leading-snug md:text-[32px]">
+            <h2 className="mt-2 text-[26px] font-bold leading-snug tracking-tight md:text-[32px]">
               어르신, 가족, 판매소, 군청 모두에게 도움이 됩니다
             </h2>
           </header>
@@ -96,7 +96,7 @@ export default function ScreenTour() {
                       className={`tour-step block w-full text-left ${on ? "" : "opacity-50 hover:opacity-80"}`}
                     >
                       <span className="flex flex-wrap items-baseline gap-x-4">
-                        <span className="text-[26px] font-light leading-tight md:text-[30px]">{s.title}</span>
+                        <span className="text-[26px] font-bold leading-tight tracking-tight md:text-[30px]">{s.title}</span>
                         <span className="text-[15px] text-night-muted">{s.who}</span>
                       </span>
                       <span data-on={on} className="tour-body mt-3 max-w-xl text-[16px] leading-relaxed md:text-[18px]">
