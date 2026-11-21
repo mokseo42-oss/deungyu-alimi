@@ -122,27 +122,31 @@
       padding: 64px 32px 128px;
     }
   }
+  /* 제목은 기름알리미처럼 굵게(700), 자간은 조금 좁게. 설명 글은 회색 보통 굵기로 제목을 받쳐 준다 */
   .page-title {
-    font-size: clamp(30px, 3.4vw, 40px);
-    font-weight: 250;
-    line-height: 1.3;
-    letter-spacing: 0;
+    font-size: clamp(28px, 2.8vw, 34px);
+    font-weight: 700;
+    line-height: 1.25;
+    letter-spacing: -0.025em;
   }
   .page-lead {
     margin-top: 12px;
     max-width: 46em;
-    font-size: 17px;
-    font-weight: 350;
+    font-size: 16px;
+    font-weight: 400;
     line-height: 1.7;
+    color: var(--muted);
   }
   .sec-title {
-    font-size: 21px;
-    font-weight: 500;
+    font-size: 19px;
+    font-weight: 700;
     line-height: 1.4;
+    letter-spacing: -0.02em;
   }
   .sub-title {
     font-size: 16px;
-    font-weight: 600;
+    font-weight: 700;
+    letter-spacing: -0.01em;
   }
 
   .card {
@@ -897,9 +901,9 @@
   }
   .hero-title {
     font-size: clamp(31px, 3.5vw, 46px);
-    font-weight: 250;
-    line-height: 1.32;
-    letter-spacing: -0.01em;
+    font-weight: 700;
+    line-height: 1.28;
+    letter-spacing: -0.03em;
   }
   .hero-cta {
     display: inline-flex;

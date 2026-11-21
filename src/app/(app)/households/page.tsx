@@ -57,7 +57,7 @@ function HouseCard({ v, today }: { v: View; today: string }) {
       <div className="flex flex-wrap items-start justify-between gap-x-6 gap-y-4">
         <div>
           <div className="flex flex-wrap items-center gap-x-4 gap-y-1">
-            <h2 className="text-[26px] font-light leading-snug md:text-[30px]">{h.label}</h2>
+            <h2 className="text-[24px] font-bold leading-snug tracking-tight md:text-[28px]">{h.label}</h2>
             <StatusBadge s={v.shown} />
           </div>
           <p className="mt-1 text-[15px] text-muted">
@@ -144,7 +144,7 @@ function RegisterCalc() {
   const k = Math.max(0.05, (total - base * 151) / winterHdd);
   return (
     <section className="-mx-5 bg-mist px-5 py-12 md:-mx-8 md:px-8 md:py-16">
-      <h2 className="text-[24px] font-light leading-snug md:text-[28px]">새 가구 등록: 첫 겨울 집 계수 계산</h2>
+      <h2 className="text-[22px] font-bold leading-snug tracking-tight md:text-[26px]">새 가구 등록: 첫 겨울 집 계수 계산</h2>
       <p className="mt-3 max-w-3xl text-[16px] leading-relaxed">
         배달 기록이 없는 첫 겨울에는 등록할 때 &quot;지난겨울 기름을 몇 번, 한 번에 얼마나 넣으셨나요?&quot;를 물어 초기값을 정합니다.
         첫 배달 뒤부터는 실제 배달량으로 고칩니다.

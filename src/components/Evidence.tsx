@@ -69,7 +69,7 @@ function Chart({ name, actual, model }: { name: string; actual: number[]; model:
 export default function Evidence() {
   return (
     <section id="evidence" className="wrap py-20 md:py-32">
-      <h2 className="text-[22px] md:text-[24px]">이 예측은 얼마나 맞나</h2>
+      <h2 className="text-[22px] font-bold tracking-tight md:text-[24px]">이 예측은 얼마나 맞나</h2>
       <p className="mt-8 max-w-4xl text-[18px] font-light leading-[1.75] md:text-[20px]">
         두 가지를 나눠서 확인했습니다. 기온으로 등유 소비가 설명되는지는 실제 공공데이터로, 기름이 떨어지기 전에 배달할 수 있는지는
         실제 기온에 가상 가구를 얹은 모의실험으로 봤습니다. 실제 가구로 검증한 것은 아직 없습니다.
@@ -87,7 +87,7 @@ export default function Evidence() {
 
       <div className="mt-16 grid gap-12 md:mt-20 md:grid-cols-[1.35fr_1fr] md:gap-16">
         <div>
-          <h3 className="border-t border-ink pt-5 text-[20px] font-medium">실제 소비량과 모델 예측</h3>
+          <h3 className="border-t border-ink pt-5 text-[20px] font-semibold">실제 소비량과 모델 예측</h3>
           <div className="mt-6 space-y-8">
             {data.sites.map((s) => (
               <Chart key={s.name} {...s} />
@@ -108,7 +108,7 @@ export default function Evidence() {
           </p>
         </div>
         <div>
-          <h3 className="border-t border-ink pt-5 text-[20px] font-medium">한계</h3>
+          <h3 className="border-t border-ink pt-5 text-[20px] font-semibold">한계</h3>
           <ul className="mt-4 text-[16px] md:text-[17px]">
             {LIMITS.map((t) => (
               <li key={t} className="border-b border-line py-3">
